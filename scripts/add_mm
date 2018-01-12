@@ -1,0 +1,61 @@
+#!/bin/ksh
+#
+#====================================================================
+#
+# script: add_mm   
+# Version: 20001106
+#
+# given an initial date (date0=ccyymmddhh) and a number of months (nm)
+# this function returns the final date 
+# new_date = date0 + nm
+#
+# usage: add_mm date0 nm
+#
+#====================================================================
+#
+if (( $# != 2 )); then
+   echo ' Usage: add_mm date0 n_months '
+   exit 1
+fi
+date0=$1
+nm=$2
+typeset -Z2  mm
+yy=`echo $date0 | cut -c1-4`
+mm=`echo $date0 | cut -c5-6`
+dd=`echo $date0 | cut -c7-8`
+hh=`echo $date0 | cut -c9-10`
+
+(( new_date = date0 ))
+
+if (( nm > 0 )) ;then
+   i=1
+   while (( i <= nm  ))
+   do
+     (( mm = mm + 1 ))
+     if (( mm > 12 )) ;then
+        mm=1
+        ((yy = yy + 1 ))
+     fi
+     new_date=$yy$mm$dd$hh
+     (( i = i + 1 ))
+   done
+fi
+#
+if (( nm < 0 )) ;then
+   i=0
+   while (( i > nm )) 
+   do
+     (( mm = mm - 1 ))
+     if (( mm < 1 )) ;then
+        mm=12
+        (( yy=yy - 1 ))
+     fi
+     new_date=$yy$mm$dd$hh
+     (( i = i - 1 ))
+   done
+fi
+#
+echo $new_date
+#
+#=== end script add_mm =========
+#

@@ -1,0 +1,1 @@
+/local/zck07apu/Documents/GitLab/vectri/data/input/rainfile_lon33-47.9_lat2-16.9_20000101_20000201_cmorph.nc

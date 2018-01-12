@@ -1,0 +1,15 @@
+ -------------- VECTRI v1.3.5-34-g3bc73a4                                 ---------------
+ run date Wed Jul 26 17:23:43 BST 2017                      
+
+  integration days:           32
+
+  advection method:            2
+
+  Climate namelist
+  climate method (constant/point/gridded):            3
+  gridded data selected 
+  data source undefined                                                                                                                                                                                               
+  base year 2010 population density (/km2)   -999.000000    
+ %I: opening rainfall /local/zck07apu/Documents/GitLab/vectri/data/input/rainfile_lon33-82.5_lat2-51.5_20000101_20000201.nc                                                                                                   
+ %I: opening temperature /local/zck07apu/Documents/GitLab/vectri/data/input/tempfile_lon33-82.5_lat2-51.5_20000101_20000201.nc                                                                                                   
+ No such file or directory

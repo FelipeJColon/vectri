@@ -1,0 +1,72 @@
+#!/bin/bash
+
+#
+# script to post process for AR5...
+#
+makelink(){
+	local model="$1"
+	local year="$2"
+        local rcp="$3"
+
+yyyy=$year
+while [[ $yyyy -le 2010 ]] ; do 
+  ln -fs ../../$rcp/output/vectri_daily_${model}_${rcp}_SSP2_lon-179.75-179.8_lat-89.75-89.8_date${yyyy}0101-${yyyy}1231.nc ./vectri_daily_${model}_historical_SSP2_lon-179.75-179.8_lat-89.75-89.8_date${yyyy}0101-${yyyy}1231.nc
+  yyyy=`expr $yyyy + 1`
+done
+}
+
+
+#modellist='HadGEM2-ES'
+#modellist='*'
+#modellist='IPSL-CM5A-LR'
+modellist='GFDL-ESM2M  HadGEM2-ES  IPSL-CM5A-LR  MIROC-ESM-CHEM  NorESM1-M'
+#modellist='GFDL-ESM2M' #  
+#modellist='NorESM1-M'
+#modellist='NorESM1-M'
+
+scenariolist='rcp2p6 rcp6p0 rcp4p5 rcp8p5' 
+#scenariolist='rcp4p5' 
+#scenariolist='rcp8p5'
+#scenariolist='rcp2p6'
+#scenariolist='rcp6p0'
+
+#scenariolist=$1
+
+
+#scenariolist='historical'
+
+ssp=ssp2
+
+dir=`pwd`
+
+for model in $modellist ; do 
+for scenario in $scenariolist ; do 
+
+echo $model $scenario
+
+  cd $dir/$model/$scenario/output
+
+  # link the RCP4p5 to historical for 2006-2010
+  if [[ $model == "HadGEM2-ES" ]] ; then 
+    year1=2005
+  else 
+    year1=2006
+  fi
+
+  if [[ $scenario == "historical" ]] ; then 
+    echo linking...
+    makelink $model $year1 rcp4p5
+  fi
+
+  #
+  # loops here...
+  #
+  echo making cs lts
+  $VECTRI/scripts/vectri_make_cs_lts.ksh $model $scenario $ssp
+  echo making decadal
+pwd
+  $VECTRI/scripts/vectri_timeav.ksh $model $scenario $ssp $year1
+#  $VECTRI/scripts/vectri_timeseries.ksh $model $scenario $ssp
+
+done 
+done

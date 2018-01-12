@@ -1,0 +1,32 @@
+lon=$1   # 2.1 
+lat=$2   # 13.5
+mode=$3
+del=$4
+
+# datadir=/media/zck07apu/Felipe/UEA/BEIS/
+# datadir=/media/zck07apu/Felipe/UEA/BEIS/Afripop
+# popfile=afripop_1km.nc
+# popfile=afripop_5km.nc
+popfile=popdens_2080.nc
+file=point_lat${lat}_lon${lon}.nc
+
+lon1=`echo $lon $del | awk '{lon=$1-$2; printf("%5.1f\n",lon);}' | sed 's/ //g'`
+lon2=`echo $lon $del | awk '{lon=$1+$2; printf("%5.1f\n",lon);}' | sed 's/ //g'`
+lat1=`echo $lat $del | awk '{lat=$1-$2; printf("%5.1f\n",lat);}' | sed 's/ //g'`
+lat2=`echo $lat $del | awk '{lat=$1+$2; printf("%5.1f\n",lat);}' | sed 's/ //g'`
+
+
+rm -f temp.nc
+#echo cdo sellonlatbox,$lon1,$lon2,$lat1,$lat2 $datadir/$popfile temp.nc
+
+cdo -s sellonlatbox,$lon1,$lon2,$lat1,$lat2 $datadir/$popfile temp.nc
+if [ $mode -eq 1 ] ; then 
+#  echo --- nearest gridpoint mode ---
+  cdo -s remapnn,lon=$lon/lat=$lat temp.nc $file
+else
+#  echo --- area mean mode --- populatation density at ${lon}E ${lat}N 
+  cdo -s fldmean temp.nc $file
+fi
+population=`cdo -s output $file`
+echo $population
+rm -f $file temp.nc

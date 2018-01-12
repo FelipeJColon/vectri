@@ -1,0 +1,7 @@
+infile="output/vectri_mean ymonmean ymonstd_lon-15.0_lat-18.0_date20960101-21000101.nc"
+output="/scratch/tompkins/vectri/dublin/vectri_mean ymonmean ymonstd_lon-15.0_lat-18.0_date20960101-21000101_mean ymonmean ymonstd_eir pr.pdf"
+countries=(/"rwanda","tanzania","kenya","uganda","burundi"/)
+step1=1
+step2=12
+moment=mean ymonmean ymonstd
+fname=eir pr

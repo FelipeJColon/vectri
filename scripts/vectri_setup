@@ -1,0 +1,151 @@
+#!/bin/bash
+
+#--------------------------------------------------
+# A. Tompkins 20120716 
+# this sets up the system variables required for a run
+# Tompkins@ictp.it - please do not distribute without permission
+#--------------------------------------------------
+
+vectri=$VECTRI
+echo $vectri
+debug=-O3        # -g or -O3  this is always the same, other arguments are flexible
+
+#
+# default options here
+#
+export popsource='grump'
+
+#
+# export 4 letter lables for host detection
+#
+export argo='argo'
+export desktop='clim'
+export laptop='lapt'
+
+if [[ -n $RUNDIR ]] ; then 
+  echo RUNDIR set to $RUNDIR
+  rundir=$RUNDIR
+else 
+  echo RUNDIR not set
+  rundir=`pwd`    
+fi
+
+# CHANGE THIS IF YOU ARE ON A SUPERCOMPUTER SINCE 
+              # THE QUEUE SYSTEM WILL START IN A DIFFERENCE PLACE
+              # SEE BELOW FOR EXAMPLES
+#
+# if argo then need to load modules
+#
+export host=$(hostname -s)
+echo $host 
+host=`uname -n`
+
+
+# instead of cutting, more flexibly look for 'clima'
+#host=`echo $host | cut -c 1-4`
+#if [[ $host == *clima* ]] ; then
+#  host='clim'
+#  echo 'on desktop
+case $host in
+  *argo*|*logi*|*node*|*seri*)
+    host=$argo
+    ;;
+  *clima*|*hp83*)
+    host=$desktop
+    ;;
+  *) 
+    host=$laptop
+    ;;
+esac
+
+echo host is set to $host
+
+#if [[ $host == 'node' ]] ; then
+#  host='argo' # unify things if in queuing.
+#fi
+#if [[ $host == 'logi' ]] ; then
+#  host='argo' # unify things if in queuing.
+#fi
+#if [[ $host == 'seri' ]] ; then
+#  host='argo' # unify things if in queuing.
+#fi
+
+#'clim')
+
+case $host in 
+$desktop)
+  fortran=gfortran
+  debug=-O3
+  export cdo=`which cdo`
+#  export cdo=/home/netapp-clima/users/ggiulian/minter/bin/cdo
+
+  
+;;
+$argo)
+  echo on argo
+  export host=argo
+  source /etc/profile.d/modules.sh
+
+  # this is for gfortran
+  fortran=ifort
+  module load netcdf/intel
+  module load hdf5/intel
+  
+  module list
+  export cdo=/home/mariotti/bin/cdo
+  echo rundir is $rundir
+
+  #LIB=$(nc-config --flibs)
+  #INCLUDE=$(nc-config --fflags)
+  #INCLUDE=`echo $INCLUDE | cut -c 7-`
+
+;;
+'lxa1')
+  fortran=gfortran
+  vectri=$HOME/VECTRI
+  rundir=$SCRATCH/vectri
+  debug=-O3
+;;
+*)
+  # default opts
+  fortran=gfortran
+  debug=-O3
+  export cdo=cdo
+;;
+esac
+
+# these are all remotely located and not touched
+export scripts=${vectri}/scripts
+export graphics=${vectri}/graphics
+export source=${vectri}/source
+export data=${vectri}/data
+
+# these are both in the @run@ directory which can be moved
+export input=${rundir}/input
+#export output=/media/zck07apu/Felipe/UEA/BEIS/output/malaria/hadgem/output
+export output=${rundir}/output
+mkdir -p $input $output
+
+# link the source files to input if not existing already
+ln -sf $scripts/makefile ${input}/
+
+# no f force so that local files not overwritten...
+ln -sf $source/*.f90 ${input}/
+#for file in `ls $source/*.f90` ; do 
+#  if [[ ! -e ${input}/$file ]] ; then  
+#    ln -s $source/*.f90 ${input}/
+#  fi
+#done
+
+if [[ $host = $argo ]] ; then
+  if [[ $debug == '-g' ]] ; then
+    export outscr=$output  # no local scratch when interactive!
+  else
+    export outscr=/local_scratch
+  fi
+else
+  export outscr=$output
+fi
+
+# just in case start in a weird place???
+cd $rundir

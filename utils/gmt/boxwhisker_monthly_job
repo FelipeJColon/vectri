@@ -1,0 +1,106 @@
+#!/bin/bash
+
+#PATH=$PATH:/usr/lib/gmt/bin/
+#file=/home/vermert/gmt
+
+cd $2
+
+info=$data/synstat_neu1.dat
+
+if [ -s out.ps ] ; then
+ rm out.ps
+fi
+
+statken=${1}
+
+statkenh=`echo ${statken} | sed 's/_/ /g' | awk '{print$1;}'` 
+cmodel=`echo ${statken} | awk '{if ( length($0) > 5 ) printf("vectri"); else printf("lmm");}'`
+
+cmodel=vectri
+
+grep ${statkenh} ${info} | awk '{printf("%s test\n",$5);}' > dat1
+read ctitle cdum < dat1
+echo $ctitle
+
+#datinp=./output/${statken}_mm.txt.gz
+datinp=./vectri_mm.txt.gz
+datout=${cmodel}_${statken}_boxmonthly.ps
+
+
+zcat ${datinp} > input
+##cat ${datinp} > input
+#iy,im,tmean,sumr,Nmean,EIR[iy,im],HBR,CSPR,PR,pmax,pmin
+
+for pos in 5 6 8 9
+#Nm EIRm CSPRm PRm
+do
+
+ awk -vpos=${pos} 'BEGIN{i=0;ia=0;}
+                   {
+                    if ( $2 == 12 ) {ia++;}
+                    mm[i]=$2;
+#                    printf("%d %d\n",i,mm[i]);
+                    val[i]=$pos;
+                    i++;
+                   }END{
+                        for (m=1;m<=12;m++)
+                        {
+                         printf("%2.2d %3d",m,ia);
+                         for (k=0;k<i;k++) {if ( m == mm[k] ) printf(" %11.2f",val[k]);} 
+                         printf("\n");
+                        }
+                       }' input > fort.100
+
+# gfortran -ffixed-line-length-none quartile.f -o quartile.x
+ quartile.x
+ cat fort.22 > plot${pos}
+
+done
+sed 's/\-9.0/ 0.0/g' plot8 > dat1; mv dat1 plot8
+
+# Beobachtungen rausschreiben (falls vorhanden)
+
+ratiol=16/4.5l
+ratio=16/4.5
+
+col0=0/38/153
+col1=130/120/220
+col2=60/190/255
+col3=170/255/255
+col4=0/220/0
+col5=160/230/50
+col6=230/220/0
+col7=255/140/0
+col8=255/0/0
+col9=255/0/255
+
+############################################
+
+xstep=a1f1
+area1=0.5/12.5/0.01/1000.0
+step1=a100g100f10
+area2=0.5/12.5/0.0/100.0
+step2=a20g20f2
+area3=0.5/12.5/0.01/100.0
+step3=a50g50f5
+ystep=-5.45
+
+style="--BASEMAP_FRAME_RGB=+black --ANOT_FONT=Helvetica --ANOT_FONT_SIZE=12 --ANOT_OFFSET=0.1c --LABEL_FONT_SIZE=12 --ANNOT_OFFSET_SECONDARY=-0.1c --GRID_PEN=0.75p/0/0/0ta" 
+
+psbasemap ${style} -R${area1} -JX${ratiol} -B${xstep}/${step1}:"#N@-m@- [mosquitoes human@+-1@+]":WSen -P -X3.0 -Y22.0 -K > out.ps
+psxy plot5 -R${area1} -JX${ratiol} -Wthick,255/0/0 -EY0.55c/thick,black -G${col5} -O -K >> out.ps
+
+psbasemap ${style} -R${area3} -JX${ratiol} -B${xstep}/${step3}:"EIR@-m@- [infectious bites month@+-1@+]":WSen -Y${ystep} -O -K >> out.ps
+psxy plot6 -R${area3} -JX${ratiol} -Wthick,255/0/0 -EY0.55c/thick,black -G${col9} -O -K >> out.ps
+
+psbasemap ${style} -R${area2} -JX${ratio} -B${xstep}/${step2}:"CSPR@-m@- [%]":WSen -Y${ystep} -O -K >> out.ps
+psxy plot8 -R${area2} -JX${ratio} -Wthick,255/0/0 -EY0.55c/thick,black -G${col6} -O -K >> out.ps
+
+psbasemap ${style} -R${area2} -JX${ratio} -B${xstep}:"month":/${step2}:"PR@-m@- [%]":WSen -Y${ystep} -O -K >> out.ps
+psxy plot9 -R${area2} -JX${ratio} -Wthick,255/0/0 -EY0.55c/thick,black -G${col8} -O >> out.ps
+
+#gv out.ps
+mv out.ps boxwhisker_${ctitle}.ps
+ps2pdf boxwhisker_${ctitle}.ps
+rm -f boxwhisker_${ctitle}.ps
+exit

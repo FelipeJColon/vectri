@@ -1,0 +1,822 @@
+#!/bin/bash
+usage(){
+	echo "Usage: fixed form"
+        echo "-----------------"
+        echo "vectri_driver 5 filename population nday"        
+        echo "vectri_driver 3 lat1 nlat res lon1 nlon res date1 date2 preproc precipfile tempfile tagname downscale initfile popsource runexe lucfile"
+        echo
+        echo "head -n 100 $VECTRI/scripts/vectri_driver for examples, or look in DOCS"
+        echo 
+        echo "Usage: free form"
+        echo "----------------"
+        echo "vectri.driver --options"
+        echo "--lat : first latitude"
+        echo "--lon : first longitude"
+        echo "--nlat : number of points in latitude direction"
+        echo "--nlon : number of points in longitude direction"
+        echo "--dlat : resolution in latitude direction"
+        echo "--dlon : resolution in longitude direction"
+	echo "--date1 : start date    --date2 : end date"
+	echo "--preproc : 1=preprocess spatial fields, 0=no preprocess"
+	echo "--dscale : 1=downscale temperature, 0=off"
+	echo "--temp : ncdf_filename or 'erai'"
+	echo "--temp : ncdf_filename or 'obstrmm', 'obsfew', 'obscmorph'"
+        echo "--pop densityX or use values from 'afripop' 'grump'"
+        echo "--init none or restart_file"
+	echo "--station station_filename mode 5"
+	exit 1
+}
+#
+#--------------------------------------------------
+# A. Tompkins 2011/06/06 Wrapper for running VECTRI
+# Tompkins@ictp.it - please do not distribute without permission
+#--------------------------------------------------
+
+#
+# there are two ways of using the driver script:
+#
+# all versions:  fixed order options 
+# from v1.3.2:   long arguments using getopt
+# 
+# driver scripts looks at first argument, if it is a number between 1 and 5 then it 
+# assumes the old mode is being used.
+#
+#
+#   1. FIXED ORDER OPTIONS:
+#
+#   vectri_driver mode options 
+#
+#---------------
+# climate source
+#---------------
+# mode=1: constant values
+#   vectri_driver 1 25   10   400
+#                temp rain population (km-2)
+#
+# 2: station data in GTS (AMMA) netcdf format
+#   vectri_driver 2 station_name   pop
+#   vectri_driver 2 ENTEBBE_AIRPORT 250
+# 
+# 3: gridded model/satellite data 
+#    (ictp version only as uses non-public datasets as input)
+#
+# Examples 
+#
+#   precipfile=obsfews obstrmm obscmorph
+#            or model file
+#   tempfile  = erai 
+#            or model file 
+#
+#   examples for observational plots.
+#
+#
+# mode=3
+#   lat1 nlat res lon1 nlon res date1 date2 preproc precipfile tempfile tagname downscale initfile popsource run
+#
+#   BEIS - TYNDAL UEA
+#   vectri_driver 3 -89.5 360 0.5 -179.5 720 0.5  19610101 19901231 1 obscmorph erai obs_ts 1 none grump 1
+# 
+#   Malawi QWeCI
+#   vectri_driver 3 -18 90 0.1 31 50 0.1 20010101 20101231 1 obsfews erai malawi 1 none afripop 1
+#
+#   West Africa QWeCI
+#   vectri_driver 3 4.5 75 0.2 -18 125 0.2 20001030 20101231 1 obstrmm erai qweci 1 none afripop 1
+#   vectri_driver 3 4.5 150 0.1 -18 270 0.1 20001030 20101231 1 obstrmm erai qweci 1 none afripop 1
+#
+#   East Africa HF
+#   vectri_driver 3 -12 180 0.1 27 150 0.1 20001030 20111231 1 obsfews erai HF 1 none afripop 1
+#
+#   Ethiopia
+#   vectri_driver 3 2 100 0.15 33 100 0.15 20001030 20111231 1 obscmorph erai ethiopia 1 none afripop 1
+#
+#   All Africa epidemic runs
+#   vectri_driver 3 -40 320 0.25 -20 280 0.25 19980101 20111231 0 rainfile tempfile run 0 none afripop 1
+#
+#   AR4 runs
+#   vectri_driver 3 -12 120 0.15 27 100 0.15 20010101 20050101 1 /home/netapp-clima-shared/MODELS/IPCC/AR4/20c3m/atm/da/pr/mpi_echam5/run1/pr_A2_1981-2000.nc /home/netapp-clima-shared/MODELS/IPCC/AR4/20c3m/atm/da/tas/mpi_echam5/run1/tas_A2_1981-2000.nc  HF_AR4 0 none grump 1
+#
+# mode=4: point station data from Volker in ASCII format
+#   vectri_driver 4 65510 $popdensity $lon $lat
+#                station id
+#
+# mode=5: 
+# ------
+#   ASCII station data for a high altitude point in Africa
+#   vectri_driver 5 stationfile popdensity ndays 
+#   set nday=0 to run for whole file
+#   vectri_driver 5 highland_location_africa.txt 100 0
+#
+#
+
+#-------------------
+#--- start of script
+#-------------------
+reverselats(){
+  local file=$1
+  if [[ -e $file ]] ; then # only do if a file
+    zlat1=`ncks -C -v lat $file | grep 'lat\[0\]' | awk -F"=" '{print $2}' | awk -F" " '{print $1}'`
+    zlat2=`ncks -C -v lat $file | grep 'lat\[1\]' | awk -F"=" '{print $2}' | awk -F" " '{print $1}'`
+    if [[ `echo "$zlat1 > $zlat2" | bc` == 1 ]] ; then 
+      echo "reversing lats in file " $file
+      cdo invertlat $file dump.nc
+      mv -f dump.nc $file
+    fi 
+  fi
+}
+#
+#--- RUN MODE FOR VECTRI, fixed or free form input set here:
+#
+
+run_command="$0 $@"
+echo $run_command
+
+echo +++ welcome to $0
+case $1 in
+[1-5]*)
+  iclim_input=$1  # 1,2,3,4,5, this is always the same, other arguments are flexible
+  echo I: using fixed order options 
+  fixorder=1 ;;
+"")
+  echo ------
+  echo USAGE:
+  echo ------
+  echo fixed form:   vectri_driver 3 lat1 nlat res lon1 nlon res date1 date2 preproc precipfile tempfile tagname downscale initfile popsource runexe lucfile
+  echo fixed form:   vectri_driver 5 highland_location_africa.txt population_density ndays
+  echo
+  echo keyword form: vectri_driver -m 3 OR --mode 3 
+  echo domain opts: --lat1 x --nlat x --dlat x  --lon1 x --nlon x --dlon x                 
+  echo date opts: --date1 yyyymmdd --date2 yyyymmdd
+  echo process opts: --preproc 1/0  --dscale 0/1   - switches to preprocess/interpolate input files and downscale temperature
+  echo climate opts: --temp ncdf_filename or erai
+  echo climate opts: --prec ncdf_filename or obsfew, obstrmm, obscmorph 
+  echo population opts: --pop densityX or afripop grump
+  echo misc opts:  --init none or restart_file   --station station_filename mode 5
+  echo "run: --run the code or not default=1, useful if you just want to preprocess input files"
+  exit
+  ;;
+*)
+  echo I: using free form long arguments
+  fixorder=0 ;;
+esac
+
+
+#
+#--- set up 
+#
+source $VECTRI/scripts/vectri_setup
+echo +++ host is $host +++ and desktop is $desktop
+export host
+now=`date`
+version=`git --git-dir=$VECTRI/.git --work-tree=$VECTRI describe`
+echo +++ found VECTRI version: $version
+if [[ $version == '' ]] ; then 
+  version='unknown release - make sure $VECTRI is set to you git repository'
+fi
+ 
+if [[ -n $outscr ]] ; then 
+  echo outscr is set to $outscr
+else
+  outscr=$output
+fi
+mkdir -p $outscr
+
+#
+#--- compile the model
+#--- to recompile the model you need to delete the executable.
+#
+#if [[ ! -e ${input}/vectri.exe ]] ; then  
+  echo +++ compiling the model +++
+  #$scripts/vectri_compile $debug
+  make -C ${input}
+  if [ $? -gt 0 ]; then
+    echo "!!!!!!!!!!!!!!!!"
+    echo "ERROR on compile"
+    echo "!!!!!!!!!!!!!!!!"
+    exit
+  fi
+#fi
+
+
+#
+#---default options
+#
+preproc=0
+downscale=0
+run=test
+init_file=none
+popsource=100
+temp=-999 ; rain=-999 ; lat=-999 ; lon=-999
+stationid=-999 ; popdensity=-9999
+nlat=-999 ; dlat=-999 ; nlon=-999 ; dlon=-999
+date1=99999999
+stationfile=undefined
+init_file='none'
+runexe=1
+lucfile=1 # sets the LUC factor to X unless you want a file in which case enter filename
+
+#
+# --- get free form arguments, from v1.3.2
+#
+
+if [[ fixorder -eq 0 ]] ; then  
+
+# Execute getopt on the arguments passed to this program, identified by the special character $@
+PARSED_OPTIONS=$(getopt -n $0  -o m: --long "help:,mode:,lat1:,nlat:,dlat:,lon1:,nlon:,dlon:,date1:,date2:,preproc:,downscale:,init:,pop:,precip:,temp:,exp:,dscale:,pop:,station:,runexe:,"  -- "$@")
+         # ARGS=$(getopt -o a:b:c -l "ay:,bee:,cee" -n "getopt.sh" -- "$@");
+#Bad arguments, something has gone wrong with the getopt command.
+if [ $? -ne 0 ];
+then
+  exit 1
+fi
+ 
+# A little magic, necessary when using getopt.
+eval set -- "$PARSED_OPTIONS";
+# Now goes through all the options with a case and using shift to analyse 1 argument at a time.
+#$1 identifies the first argument, and when we use shift we discard the first argument, so $2 becomes $1 and goes again through the case.
+while true;
+do
+  case "$1" in
+    -m|--mode)
+      iclim_input=$2
+      shift 2;;
+ 
+    --lon1)
+      ilon1=$2
+      shift 2;;
+ 
+    --nlon)
+      nlon=$2
+      shift 2;;
+    
+    --dlon)
+      dlon=$2
+      shift 2;;
+ 
+    --lat1)
+      ilat1=$2
+      shift 2;;
+ 
+    --nlat)
+      nlat=$2
+      shift 2;;
+    
+    --dlat)
+      dlat=$2
+      shift 2 ;;
+
+    --prec)
+      precipsource=$2
+      shift 2 ;;
+
+    --temp)
+      tempsource=$2
+      shift 2 ;;
+
+    --init)
+      init_file=$2
+      shift 2 ;;
+
+    --exp)
+      run=$2
+      shift 2 ;;
+
+    --dscale)
+      downscale=$2
+      shift 2 ;;
+
+    --pop) 
+      popsource=$2
+      shift 2 ;;
+
+    --station) 
+      stationfile=$2
+      shift 2 ;;
+
+    --date1)
+      case "$2" in
+        "") echo need to define date1 ; exit 1 ;;
+         *) date1=$2 ; shift 2 ;;
+      esac ;;
+
+    --date2)
+      case "$2" in
+        "") echo need to define date2 ; exit 1 ;;
+         *) date2=$2 ; shift 2 ;;
+      esac ;;
+
+    --preproc)
+      case "$2" in
+        "") preproc=1  ; shift 2 ;;
+         *) preproc=$2 ; shift 2 ;;
+      esac ;;
+
+    --runexe)
+      case "$2" in
+        "") runexe=1  ; shift 2 ;;
+         *) runexe=$2 ; shift 2 ;;
+      esac ;;
+
+    --lucfile)
+      case "$2" in 
+        "") lucfile="fix1" ; shift 2 ;;
+         *) lucfile=$2 ; shift 2 ;;
+      esac ;;
+
+    --)
+      shift
+      break;;
+  esac
+done
+fi # fixorder
+
+#-------------------
+# 1: equilibrium
+#-------------------
+if [[ $iclim_input -eq 1 ]] ; then 
+  if [[ $fixorder -eq 1 ]] ; then 
+    temp=$2
+    rain=$3
+    popdensity=$4
+    nday=$5
+  fi 
+
+  precipsource='none'
+
+  # dummy grid information
+  lon=0
+  nlon=1
+  dlon=1
+  lat=0
+  nlat=1
+  dlat=1
+  #
+  # output nc
+  #
+  fileoutdaync=vectri.nc
+
+  echo 
+  echo equilibrium run 
+  echo temp=$temp rain=$rain population density=$popdensity
+  echo 
+fi
+
+#--------------------------------
+# 2: NETCDF AMMA/GTS station data
+#--------------------------------
+if [[ $iclim_input -eq 2 ]] ; then 
+  if [[ $fixorder -eq 1 ]] ; then 
+    tempsource=$2
+    precipsource=$2
+    popdensity=$3
+  fi 
+
+  #
+  # output nc
+  #
+  fileoutdaync=vectri.nc
+  precipsource='none'
+
+  #
+  # station info
+  #
+#  machine=`echo $HOST | cut -c 1-5`
+  if [[ $host = $desktop ]] || [[ $host = $argo ]] ; then 
+  #  echo 'on clima'
+    filedata='/home/netapp-clima/shared/OBS/STATION_DATA/amma_stations/'
+  else
+  #  echo 'on laptop'
+    filedata='/home/tompkins/DATA/STATION_DATA/AMMA_STATIONS/'
+  fi
+  stationfile=$filedata/SYNOP-${stationid}.nc
+
+  nday=16920
+
+  # grid information all in netcdf file!
+  date1=-999
+  lon=-999
+  nlon=1
+  dlon=1
+  lat=-999
+  nlat=1
+  dlat=1
+
+  echo ---
+  echo GTS station run 
+  echo stationid=$stationid population density=$popdensity
+  echo ---
+
+fi
+
+#-------------------
+# 3: gridded data
+#    this is the most common option to use
+#    currently works for 
+#      1) ERAI (temp) and satellite rainfall
+#      2) AR4 global model output
+#-------------------
+if [[ $iclim_input -eq 3 ]] ; then 
+  if [[ $fixorder -eq 1 ]] ; then 
+    # grid information
+    lat1=$2 
+    nlat=$3
+    dlat=$4
+    lon1=$5
+    nlon=$6
+    dlon=$7
+    date1=$8
+    date2=$9
+    preproc=${10}
+    precipsource=${11} 
+    tempsource=${12}
+    run=${13}
+    downscale=${14}
+    init_file=${15}
+    popsource=${16}
+    runexe=${17}
+    lucfile=${18}
+  fi 
+
+  echo +++ vectri_driver gridded run +++
+  echo lat1:	     $lat1
+  echo nlat:	     $nlat
+  echo dlat:	     $dlat
+  echo lon1:	     $lon1
+  echo nlon:	     $nlon
+  echo dlon:	     $dlon
+  echo date1:	     $date1
+  echo date2:	     $date2
+  echo preproc:	     $preproc
+  echo precipsource: $precipsource
+  echo tempsource:   $tempsource
+  echo run:	     $run
+  echo downscale:    $downscale
+  echo popsource:    $popsource
+  echo init_file:    $init_file # none, vectri output file, or restart file    
+  echo runexe:       $runexe
+
+#  echo gridded run > $output_file
+#  echo options  >> $output_file
+
+  popdensity=-999 # read in from file...
+  #popdensity=$popsource # if preproc=1 then this is assumed filename to be read
+
+  if [[ $nlon -eq 1 && $nlat -eq 1 ]] ; then  
+    lat2=$lat1
+    lon2=$lon1
+  else 
+    nlonm1=`expr $nlon - 1` 
+    nlatm1=`expr $nlat - 1`
+
+    # calculate far corner
+    lon2=`echo $lon1 $nlonm1 $dlon | awk '{lon=$1+$2*$3; printf("%5.1f\n",lon);}' | sed 's/ //g'`
+    lat2=`echo $lat1 $nlatm1 $dlat | awk '{lat=$1+$2*$3; printf("%5.1f\n",lat);}' | sed 's/ //g'`
+  fi
+
+  #
+  # output nc
+  #
+  outtail=_${run}_lon${lon1}-${lon2}_lat${lat1}-${lat2}_date${date1}-${date2}.nc
+  fileoutdaync=vectri_daily${outtail}
+
+  fileoutmonnc=$output/vectri_monthly${outtail}
+  fileouttimnc=$output/vectri_mean${outtail}
+  fileoutydaymeannc=$output/vectri_ydaymean${outtail}
+  fileoutydaystdnc=$output/vectri_ydaystd${outtail}
+  fileoutymonmeannc=$output/vectri_ymonmean${outtail}
+  fileoutymonstdnc=$output/vectri_ymonstd${outtail}
+
+  #
+  # output files
+  #
+  tag=lon${lon1}-${lon2}_lat${lat1}-${lat2}_${date1}_${date2}.nc
+  rainfile=$input/rainfile_${tag}
+  tempfile=$input/tempfile_${tag}
+#  geopotfile=/home/netapp-clima-shared/MODELS/ECMWF/ERAI/SFC/erai_geopotential.nc
+  geopotfile=$VECTRI/data/era_geo_an.grb
+  echo '########## GEOPOTENTIAL FILE HARDWIRED FOR ERAI ########### ' $geopotfile
+
+  if [[ $preproc -eq 1 ]] ; then
+    echo $scripts/vectri_preprocess $precipsource $lat1 $nlat $dlat $lon1 $nlon $dlon $date1 $date2 $rainfile $tempfile $geopotfile $tempsource $downscale $init_file $popsource $lucfile
+    $scripts/vectri_preprocess $precipsource $lat1 $nlat $dlat $lon1 $nlon $dlon $date1 $date2 $rainfile $tempfile $geopotfile $tempsource $downscale $init_file $popsource $lucfile
+  else # preprocessing skipped - just read precip source and temp source directly 
+    if [[ $precipsource != "default" ]] ; then 
+      rainfile=$precipsource
+    fi 
+    if [[ $tempsource != "default" ]] ; then 
+      tempfile=$tempsource
+    fi
+  fi 
+
+  # number of days in integration
+  if [[ $date1 -le 1 ]] ; then 
+    nday=$date2
+  else
+    # here we difference the dates:
+    # nday=`$scripts/diff_dd $date1 $date2`
+
+    # here we run for the number of days in the rain file 
+    nday=`ncks -C -v time $rainfile | tail -n 2 | head -n 1 | awk -F"[" '{print $2}' | awk -F"]" '{print $1}'`
+    nday=`expr $nday + 1`
+    echo 'running for nday=' $nday
+  fi
+
+  nyearspinup=0
+  if [[ $init_file == 'climate' ]] ; then
+    init_file=$data/vectri_africa_initial_conditions_annual_cycle_2000-07.nc
+    echo initializing from climate file $init_file
+  fi
+  if [[ ! -e $input/$init_file ]] ; then
+    echo 'initial conditions are idealized - consider a spin up ' $nyearspinup
+  fi
+
+  echo +++ gridded run from $date1 to $date2 using: 
+  echo "           rain data $precipsource "
+  echo "           temperature data $tempsource "
+
+
+  # flip the latitude if necessary (must run south to north for VECTRI)
+  if [[ $nlat -gt 1 ]] ; then 
+    reverselats $rainfile
+    reverselats $tempfile
+    reverselats $popsource
+  fi 
+
+#  case "$precipsource" in
+#    *AR4*) precipsource='ar4'
+#           ;;
+#    *hf_som*) precipsource='hfso' # overwrites AR5 below.
+#           ;;
+#    *AR5*) precipsource='ar5'
+#           ;;
+#    *trmm*) precipsource='trmm'
+#           ;;
+#    *fews*) precipsource='fews'
+#           ;;
+#    *cmor*) precipsource='cmor'
+#           ;;
+#    # first select the dates required
+#    # only dump first four characters of satellite in namelist
+#    *) precipsource='none'
+#       ;;
+#  esac
+
+  outfile=vectri_mean_${tag}.pdf
+  cat <<EOF > plot.options.ncl
+                 infile="output/vectri_mean.nc"
+                 outfile="${outfile}"
+                 title="title"
+                 countries=Africa
+                 step1=0
+                 step2=0
+                 moment="mean"
+                 fname="PRd"
+EOF
+
+
+fi
+
+#-------------------
+# 4: ASCII station data from volker
+#
+# format - date temp rain 
+#-------------------
+if [[ $iclim_input -eq 4 ]] ; then 
+
+  if [[ $fixorder -eq 1 ]] ; then 
+    stationid=$2
+    popdensity=$3
+    lon1=$4
+    lat1=$5
+  fi 
+  nlon=1
+  dlon=1
+  nlat=1
+  dlat=1
+
+  #
+  # output nc
+  #
+  fileoutdaync=vectri.nc
+  precipsource='none'
+ 
+  #
+  # station info
+  #
+#  machine=`echo $HOST | cut -c 1-5`
+  if [[ $host = $desktop ]] || [[ $host = $argo ]] ; then 
+    filedata='/home/netapp-clima/shared/OBS/STATION_DATA/west_africa'
+  else
+    filedata='/home/tompkins/DATA/STATION_DATA/west_africa'
+  fi
+  stationfile=$filedata/${stationid}_30d_monatswerte.txt
+
+  nday=16920
+  date1=19700101
+
+
+  echo ---
+  echo station run 
+  echo stationid=$stationid population density=$popdensity
+  echo ---
+fi
+
+
+#-------------------
+# 5: ASCII station data from Gizaw
+#
+# format - yyyy mm dd rain tmax tmin
+#  5 station 100 1000
+#-------------------
+
+if [[ $iclim_input -eq 5 ]] ; then 
+  if [[ $fixorder -eq 1 ]] ; then 
+    stationfilep=$2
+    popdensity=$3
+    nday=$4
+  else 
+    nday=$date2
+    popdensity=$popsource
+  fi 
+
+# if file with path does not exist then assume is a filename only and look for it
+# then look for it in the data directory
+  if [ ! -e $stationfilep ] ; then 
+    if [ -e $data/$stationfilep ] ; then
+      stationfile=$stationfilep
+      ln -sf  $data/$stationfilep $input/$stationfile
+    else        
+      echo data file $stationfilep does not exist and not found in $input, ./ or $data
+      exit
+    fi
+  else # simply link hard path:
+    stationfile="${stationfilep##*/}" # remove the path from filename
+    ln -sf $stationfilep $input/$stationfile
+  fi 
+
+  # get date 1 from file
+  line=`head -1 $input/$stationfile`
+  yyyy=`echo $line | awk -F' ' '{print $1}'`
+  mm=`echo $line | awk -F' ' '{print $2}'`
+  dd=`echo $line | awk -F' ' '{print $3}'`
+  date1=${yyyy}`printf "%0*d\n" 2 ${mm}``printf "%0*d\n" 2 ${dd}`
+  
+  #
+  # output nc
+  #
+  fileoutdaync=vectri.nc
+  precipsource='none'
+ 
+  #
+  # station info
+  #
+  if [[ $nday == 0 ]]  ; then 
+    # get date 2 from file
+    line=`tail -1 $input/$stationfile`
+    yyyy=`echo $line | awk -F' ' '{print $1}'`
+    mm=`echo $line | awk -F' ' '{print $2}'`
+    dd=`echo $line | awk -F' ' '{print $3}'`
+    date2=${yyyy}${mm}${dd}
+  
+    nday=`diff_dd $date1 $date2`
+    echo +++ setting integration length to $nday
+  fi
+
+  # grid information
+  lon1=0
+  nlon=1
+  dlon=1
+  lat1=0
+  nlat=1
+  dlat=1
+
+  echo ---
+  echo station run 
+  echo I: station is $stationfile
+  echo I: nday $nday
+  echo I: population density=$popdensity
+  echo ---
+
+fi
+
+# directories
+rm -f output_fort/fort.*
+
+# --------------------
+# set up namelist file
+# --------------------
+
+# program control
+output_file='vectri.out' # set to 'screen' for screen output else filename
+
+nlfile=$input/vectri.namelist
+
+cat <<EOF > $nlfile
+  !
+  ! this is the namelist file for the vectri model
+  !
+  ! A. Tompkins 2011, ICTP
+  !
+&CONTROL
+iclim_input=$iclim_input,
+output_file='$output_file',
+rundir='$rundir',
+ncout_file='$outscr/$fileoutdaync'
+nday=$nday,
+start_date=$date1,
+init_file='$init_file',
+now='$now',
+version='$version',
+runcommand='$run_command',
+/
+&CLIMATE
+rconst_rain=$rain
+rconst_temp=$temp
+rainfile='$rainfile'
+tempfile='$tempfile'
+/
+&STATION
+station_file='$stationfile',
+rpopdensity2010=$popdensity
+/
+&REGION
+lon=$lon1,
+nlon=$nlon,
+dlon=$dlon,
+lat=$lat1,
+nlat=$nlat,
+dlat=$dlat
+/
+&CONSTANTS
+EOF
+
+if [ ! -e $input/vectri.options ] ; then
+  echo " " > $input/vectri.options
+fi  
+if [[ ! -z $nyearspinup ]] ; then 
+  echo nyearspinup=$nyearspinup >>  $nlfile 
+fi
+cat $input/vectri.options >> $nlfile # if spinup is present then overwrite.
+echo "/" >> $nlfile
+
+echo +++ running +++
+# run the model
+rm -f $output/diag_*
+
+if [[ $runexe -eq 1 ]] ; then 
+  if [[ $debug == '-g' ]] ; then 
+    if [[ $host == $argo ]] ; then 
+      /opt/totalview/bin/totalview $input/vectri.exe
+    else 
+      ddd $input/vectri.exe
+    fi
+  else
+    echo running $input/vectri.exe
+    $input/vectri.exe
+    if [ ! -e $outscr/$fileoutdaync ] ; then
+      echo "!!!!!!!!!!!!!!!!"
+      echo "RUN TIME ERROR"
+      echo "!!!!!!!!!!!!!!!!"
+      exit 1
+    fi
+    echo run finished
+  fi
+else
+  echo skipped run step
+  exit
+fi
+
+echo +++ post processing +++
+
+
+if [[ $iclim_input -eq 3 ]] ; then 
+  if [[ $host != $desktop ]] ; then
+    #
+    # move restart file 
+    #
+    restdate=`$scripts/add_dd $date2 1`
+    echo mv $input/restart_vectri.nc $input/restart_vectri_${run}_${restdate}.nc
+    mv $input/restart_vectri.nc $input/restart_vectri_${run}_${restdate}.nc
+    mv $outscr/$fileoutdaync $output
+  fi
+
+  #  now we do all the postprocessing in a post process script.
+  #  rm -f timmean.nc monmean.nc
+  #  cdo timmean $fileoutdaync $fileouttimnc 
+  #  cdo monmean $fileoutdaync $fileoutmonnc
+  #  cdo ydaymean $fileoutdaync $fileoutydaymeannc
+  #  cdo ymonmean $fileoutdaync $fileoutymonmeannc
+  #  cdo ymonstd  $fileoutdaync $fileoutymonstdnc
+  #  ln -s $fileouttimnc $output/timmean.nc
+  #  ncl $graphics/ncl/make_pdf.ncl
+  #  rm -f $output/timmean.nc 
+fi
+
+if [[ $iclim_input -eq 44 ]] ; then 
+  $graphics/gmt/gen_mm_year_values_job vectri $output
+  gzip $output/vectri*.txt
+  $graphics/gmt/boxwhisker_monthly_job $stationid $output
+  $graphics/gmt/vis_ento_job $stationid $output
+  echo $graphics/gmt/boxwhisker_monthly_job $stationid $output
+  echo  $graphics/gmt/vis_ento_job $stationid $output
+fi
+

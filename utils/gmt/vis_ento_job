@@ -1,0 +1,318 @@
+#!/bin/bash
+
+#PATH=$PATH:/usr/lib/gmt/bin/
+#file=/home/vermert/gmt
+
+cd $2 
+
+info=$data/synstat_neu1.dat
+
+DATA=/home/netapp-clima/users/tompkins/DATA/HEALTH/WESTAFRICA
+ln -s $HOME/CODE/GMT/EIR_monmean.cpt ./
+
+if [ -s out.ps ] ; then
+ rm out.ps
+fi
+
+statken=${1}
+
+statkenh=`echo ${statken} | sed 's/_/ /g' | awk '{print$1;}'` 
+#cmodel=`echo ${statken} | awk '{if ( length($0) > 5 ) printf("vectri"); else printf("lmm");}'`
+cmodel=vectri
+
+grep ${statkenh} ${info} | awk '{printf("%s test\n",$5);}' > dat1
+read ctitle cdum < dat1
+echo $ctitle
+
+# extract annoying brackets...
+ctitle=`echo $ctitle | sed 's/(//g'`
+ctitle=`echo $ctitle | sed 's/)//g'`
+
+#datinp0=./output/${statken}_mm.txt.gz
+#datinp=./output/${statken}_year.txt.gz
+datinp0=./vectri_mm.txt.gz
+datinp=./vectri_year.txt.gz
+
+zcat ${datinp0} > input0
+zcat ${datinp} > input
+
+#65510_lon-4.05_lat11.02_mm.txt.gz
+#65510_lon-4.10_lat11.08_mm.txt.gz
+#65510_lon-4.20_lat11.15_mm.txt.gz
+#65510_lon-4.25_lat11.43_mm.txt.gz
+#65510_lon-4.28_lat11.35_mm.txt.gz
+#65510_lon-4.29_lat11.18_mm.txt.gz
+#65510_lon-4.30_lat11.19_mm.txt.gz
+#65510_lon-4.30_lat11.20_mm.txt.gz
+#65510_lon-4.30_lat11.21_mm.txt.gz
+#65510_lon-4.38_lat11.67_mm.txt.gz
+#65510_lon-4.41_lat11.35_mm.txt.gz
+#65510_lon-4.41_lat11.37_mm.txt.gz
+#65510_lon-4.41_lat11.38_mm.txt.gz
+#65510_lon-4.42_lat11.37_mm.txt.gz
+#65510_lon-4.42_lat11.38_mm.txt.gz
+#65510_lon-4.43_lat11.38_mm.txt.gz
+#65510_lon-4.44_lat11.37_mm.txt.gz
+#65510_lon-4.45_lat11.58_mm.txt.gz
+#65510_lon-4.55_lat11.59_mm.txt.gz
+#65510_lon-4.63_lat11.22_mm.txt.gz
+#65510_lon-4.64_lat11.21_mm.txt.gz
+#65510_lon-4.65_lat11.22_mm.txt.gz
+
+datout=${cmodel}_${statken}_ento.ps
+
+#awk '{
+#      printf("%4d %11.1f\n",$1,$3);
+#     }' ${datinp} > datRR
+#
+#awk '{
+#      printf("%4d %11.1f\n",$1,$2);
+#     }' ${datinp} > datT
+
+awk '{
+      printf("%4d %11.3f\n",$1,$5);
+     }' input > datEIR
+
+#awk '{
+#      printf("%4d %11.6f\n",$1,$6/1000.);
+#     }' ${datinp} > datHBR
+
+awk '{
+      printf("%4d %11.2f\n",$1,$4);
+     }' input > datCSPR
+
+#awk '{
+#      printf("%4d %11.2f\n",$1,$7);
+#     }' ${datinp} > datPRa
+#
+#awk '{
+#      printf("%4d %11.2f\n",$1,$8);
+#     }' ${datinp} > datPRmax
+#
+#awk '{
+#      printf("%4d %11.2f\n",$1,$9);
+#     }' ${datinp} > datPRmin
+#
+#awk '{
+#      printf("%4d %11.2f\n",$1,$10);
+#     }' ${datinp} > datSeas
+#
+#awk '{
+#      printf("%4d %11.2f\n",$1,$11);
+#     }' ${datinp} > datMSeas
+
+awk '{
+      if ( ( $12 != "00" ) && ( $12 != -5 ) ) {printf("%4d %d 12 0 Helvetica CM X\n",$1,$12);}
+     }' input > datXSeas
+
+#awk '{
+#      for (i=13;i<=18;i++)
+#      {
+#       if ( ( $i != "00" ) && ( $i != -5 ) && ( $i != -1 ) ) {printf("%4d %d 12 0 Helvetica CM S\n",$1,$i);}
+#      }
+#     }' ${datinp} > datSSeas
+#
+#awk '{
+#      for (i=19;i<=24;i++)
+#      {
+#       if ( ( $i != "00" ) && ( $i != -5 ) && ( $i != -1 ) ) {printf("%4d %d 12 0 Helvetica CM E\n",$1,$i);}
+#      }
+#     }' ${datinp} > datESeas
+
+
+# Beobachtungen rausschreiben (falls vorhanden)
+
+for carea in R U I
+do
+ zcat $DATA/EIRa${carea}_year.dat.gz | grep ${statkenh} | awk '{for (j=3;j<=NF;j=j+2) {printf("%s %s\n",$j,$(j+1));} }' > val${carea}
+
+ zcat $DATA/CSPRa${carea}_year.dat.gz | grep ${statkenh} | awk '{for (j=3;j<=NF;j=j+2) {printf("%s %s\n",$j,$(j+1));} }' > CSPRa${carea}
+ zcat $DATA/CSPRa${carea}_year.dat.gz | grep ${statkenh} | awk '{for (j=3;j<=NF;j=j+2) {printf("%s %s\n",$j,$(j+1));} }' > CSPRa${carea}
+ zcat $DATA/CSPRa${carea}_year.dat.gz | grep ${statkenh} | awk '{for (j=3;j<=NF;j=j+2) {printf("%s %s\n",$j,$(j+1));} }' > CSPRa${carea}
+awk '{
+      if ( ( $12 != "00" ) && ( $12 != -5 ) ) {printf("%4d %d 10 0 Helvetica CM X\n",$1,$12);}
+     }' input > datXSeas
+
+ zcat $DATA/SSeas${carea}_year.dat.gz | grep ${statkenh} | awk '{for (j=3;j<=NF;j=j+2) {printf("%4d %d 6 0 Helvetica CM S\n",$j,$(j+1));} }' > SSeas${carea}
+ zcat $DATA/ESeas${carea}_year.dat.gz | grep ${statkenh} | awk '{for (j=3;j<=NF;j=j+2) {printf("%4d %d 6 0 Helvetica CM E\n",$j,$(j+1));} }' > ESeas${carea}
+ zcat $DATA/XSeas${carea}_year.dat.gz | grep ${statkenh} | awk '{for (j=3;j<=NF;j=j+2) {printf("%4d %d 6 0 Helvetica CM X\n",$j,$(j+1));} }' > XSeas${carea}
+
+done
+
+ratio=14/6
+ratio2=14/-6
+
+############################################
+
+area1=1972.5/2006.5/0.0/1000.0
+area2=1972.5/2006.5/0.0/20.0
+
+psbasemap --BASEMAP_FRAME_RGB=+red --ANOT_FONT=Helvetica --LABEL_FONT_SIZE=14 --ANNOT_OFFSET_SECONDARY=-0.15c --GRID_PEN=0.75p/0/0/0ta -R${area1} -JX${ratio} -Ba5f1:"year":/a100g200f10:"EIR@-a@- [infective bites year@+-1@+]":WSn -P -Y16.0 -K > out.ps
+psxy datEIR -R${area1} -M -Wthick,255/0/0 -JX${ratio} -O -K >> out.ps
+psxy valR -JX${ratio} -R${area1} -Ss0.15 -G210/105/30 -N -O -K >> out.ps
+psxy valU -JX${ratio} -R${area1} -Sc0.15 -G0/0/0 -N -O -K >> out.ps
+psxy valI -JX${ratio} -R${area1} -St0.15 -G0/0/255 -N -O -K >> out.ps
+
+
+psbasemap --BASEMAP_FRAME_RGB=+green --ANOT_FONT=Helvetica --LABEL_FONT_SIZE=14 -R${area2} -JX${ratio2} -Ba5f1:"":/a2f1:"":E -O -K >> out.ps
+#psxy datHBR -R${area2} -M -Wthick,0/0/255 -JX${ratio} -O -K >> out.ps
+psxy datCSPR -R${area2} -M -Wthick,0/255/0 -JX${ratio2} -O -K >> out.ps
+psxy CSPRaR -JX${ratio2} -R${area2} -Ss0.15 -W210/105/30 -N -O -K >> out.ps
+psxy CSPRaU -JX${ratio2} -R${area2} -Sc0.15 -W0/0/0 -N -O -K >> out.ps
+psxy CSPRaI -JX${ratio2} -R${area2} -St0.15 -W0/0/255 -N -O -K >> out.ps
+
+
+
+# Beobachtungen eintragen
+# R braun Quadrat
+# U schwarzer Kreis
+# I blaues Dreieck
+
+#rm dat1
+#while read x y
+#do
+# echo ${x}" "${y} >> dat1
+#done < valR
+#cat dat1
+
+############################################
+
+area2=1972.5/2006.5/0.5/12.5
+
+######## Saison mittels EIRm-Werten kennzeichnen
+
+#1963 04 t2m rr cspr eir hbr
+
+zcat ${datinp0} > input0
+
+awk '{
+      if ( $6 >= 0.01 ) 
+      {
+       if ( $6 >= 150 ) {ifa=20;}
+       else if (  $6 >= 100 ) {ifa=19;}
+       else if (  $6 >= 75 ) {ifa=18;}
+       else if (  $6 >= 50 ) {ifa=17;}
+       else if (  $6 >= 20 ) {ifa=16;}
+       else if (  $6 >= 10 ) {ifa=15;}
+       else if (  $6 >= 5 ) {ifa=14;}
+       else if (  $6 >= 2 ) {ifa=13;}
+       else if (  $6 >= 0.1 ) {ifa=12;}
+       else {ifa=11;}
+       printf("%11.2f %11.2f farbe=%d\n",$1-0.5,$2-0.5,ifa);
+       printf("%11.2f %11.2f farbe=%d\n",$1-0.5,$2+0.5,ifa);
+       printf("%11.2f %11.2f farbe=%d\n",$1+0.5,$2+0.5,ifa);
+       printf("%11.2f %11.2f farbe=%d\n",$1+0.5,$2-0.5,ifa);
+       printf("%11.2f %11.2f farbe=%d\n",$1-0.5,$2-0.5,ifa);
+       printf("> farbe=%d\n",ifa);
+      }
+     }' input0 > test0.txt
+
+for ifa in 11 12 13 14 15 16 17 18 19 20
+do
+ if [ $ifa -eq 11 ] ; then
+  col=0/38/153
+ elif [ $ifa -eq 12 ] ; then
+  col=30/120/220
+ elif [ $ifa -eq 13 ] ; then
+  col=60/190/255
+ elif [ $ifa -eq 14 ] ; then
+  col=170/255/255
+ elif [ $ifa -eq 15 ] ; then
+  col=0/220/0
+ elif [ $ifa -eq 16 ] ; then
+  col=160/230/50
+ elif [ $ifa -eq 17 ] ; then
+  col=230/220/0
+ elif [ $ifa -eq 18 ] ; then
+  col=255/140/0
+ elif [ $ifa -eq 19 ] ; then
+  col=255/0/0
+ elif [ $ifa -eq 20 ] ; then
+  col=255/0/255
+ fi
+ awk -vifa=${ifa} '{if ( substr($NF,length($NF)-1,2) == ifa ) printf("%s\n",substr($0,1,index($0,"fa")-1));}' test0.txt > dat1
+ if [ $ifa -eq 11 ] ; then
+  psxy dat1 -R${area2} -JX${ratio} -M -G${col} -Y-8.0 -X-0.5 -O -K >> out.ps
+ else
+  psxy dat1 -R${area2} -JX${ratio} -M -G${col} -O -K >> out.ps
+ fi
+
+done
+
+#psbasemap --ANOT_FONT=Helvetica --LABEL_FONT_SIZE=14 --BASEMAP_FRAME_RGB=+black -R${area2} -JX${ratio} -B/a2f1:"seasonality [month]":E -O -K >> out.ps
+psbasemap --ANOT_FONT=Helvetica --LABEL_FONT_SIZE=14 --ANNOT_OFFSET_SECONDARY=-0.15c -R${area2} -JX${ratio} -Ba5f1:"year":/f1WEnS -O -K >> out.ps
+pstext datXSeas -JX${ratio} -R${area2} -O -K >> out.ps
+pstext SSeasR -JX${ratio} -R${area2} -S2/255/255/255 -G210/105/30 -X-0.17 -Y-0.2 -O -K >> out.ps
+pstext XSeasR -JX${ratio} -R${area2} -S2/255/255/255 -G210/105/30 -Y0.2 -O -K >> out.ps
+pstext ESeasR -JX${ratio} -R${area2} -S2/255/255/255 -G210/105/30 -Y0.2 -O -K >> out.ps
+pstext SSeasI -JX${ratio} -R${area2} -S2/255/255/255 -G0/0/255 -X0.17 -Y-0.4 -O -K >> out.ps
+pstext XSeasI -JX${ratio} -R${area2} -S2/255/255/255 -G0/0/255 -Y0.2 -O -K >> out.ps
+pstext ESeasI -JX${ratio} -R${area2} -S2/255/255/255 -G0/0/255 -Y0.2 -O -K >> out.ps
+pstext SSeasU -JX${ratio} -R${area2} -S2/255/255/255 -G0/0/0 -X0.17 -Y-0.4 -O -K >> out.ps
+pstext XSeasU -JX${ratio} -R${area2} -S2/255/255/255 -G0/0/0 -Y0.2 -O -K >> out.ps
+pstext ESeasU -JX${ratio} -R${area2} -S2/255/255/255 -G0/0/0 -Y0.2 -O -K >> out.ps
+
+
+#while read x y
+#do
+# echo ${x}" "${y} >> dat1
+#done < valR
+#cat dat1
+
+
+########
+
+yshift=-0.465
+yshift=-0.5
+
+echo "0 0 14 90	Helvetica CM CSPR@-a@- [%]" > dat1
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Ggreen -Y8.0 -X8.8 -O -K >> out.ps
+echo "0 0 14 0 Helvetica CM D" > dat1
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -Y-5.4 -X-1.5 -O -K >> out.ps
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -X-15.0 -O -K >> out.ps
+echo "0 0 14 0 Helvetica CM N" > dat1
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -Y${yshift} -X15.0 -O -K >> out.ps
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -X-15.0 -O -K >> out.ps
+echo "0 0 14 0 Helvetica CM O" > dat1
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -Y${yshift} -X15.0 -O -K >> out.ps
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -X-15.0 -O -K >> out.ps
+echo "0 0 14 0 Helvetica CM S" > dat1
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -Y${yshift} -X15.0 -O -K >> out.ps
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -X-15.0 -O -K >> out.ps
+echo "0 0 14 0 Helvetica CM A" > dat1
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -Y${yshift} -X15.0 -O -K >> out.ps
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -X-15.0 -O -K >> out.ps
+echo "0 0 14 0 Helvetica CM J" > dat1
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -Y${yshift} -X15.0 -O -K >> out.ps
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -X-15.0 -O -K >> out.ps
+echo "0 0 14 0 Helvetica CM J" > dat1
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -Y${yshift} -X15.0 -O -K >> out.ps
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -X-15.0 -O -K >> out.ps
+echo "0 0 14 0 Helvetica CM M" > dat1
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -Y${yshift} -X15.0 -O -K >> out.ps
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -X-15.0 -O -K >> out.ps
+echo "0 0 14 0 Helvetica CM A" > dat1
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -Y${yshift} -X15.0 -O -K >> out.ps
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -X-15.0 -O -K >> out.ps
+echo "0 0 14 0 Helvetica CM M" > dat1
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -Y${yshift} -X15.0 -O -K >> out.ps
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -X-15.0 -O -K >> out.ps
+echo "0 0 14 0 Helvetica CM F" > dat1
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -Y${yshift} -X15.0 -O -K >> out.ps
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -X-15.0 -O -K >> out.ps
+echo "0 0 14 0 Helvetica CM J" > dat1
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -Y${yshift} -X15.0 -O -K >> out.ps
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -X-15.0 -O -K >> out.ps
+echo "0 0 14 90 Helvetica CM seasonality [months]" > dat1
+pstext dat1 -JX${ratio} -R-5/5/-5/5 -Gblack -Y2.5 -X15.6 -O -K >> out.ps
+psscale --ANOT_FONT=Helvetica --ANNOT_FONT_SIZE_PRIMARY=12 --ANNOT_OFFSET_PRIMARY=0.15c --TICK_LENGTH=0.0c -CEIR_monmean.cpt -D-2.5/8.0/5.0/0.5 -X10.0 -Y-4.6 -L -Ef0.5c -O -K >> out.ps
+echo "0 0 12 0 Helvetica CM 150" > dat1
+pstext dat1 -R-5/5/-5/5 -JX${ratio} -Y7.5 -X-8.5 -O -K >> out.ps
+echo "0 0 14 0 Helvetica CM EIR@-m" > dat1
+pstext dat1 -R-5/5/-5/5 -JX${ratio} -Y-5.5 -X-0.5 -O >> out.ps
+
+mv out.ps season_yearly_${ctitle}.ps
+ps2pdf season_yearly_${ctitle}.ps
+rm -f season_yearly_${ctitle}.ps
+
+exit

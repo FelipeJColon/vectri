@@ -1,0 +1,178 @@
+#!/bin/sh
+
+echo "gen_mm_year_values..."
+
+cd $2
+statken=${1}
+
+awk 'BEGIN{i=0;jh=1;kh=1;}
+    {
+     y[i]=substr($1,1,4);
+     m[i]=substr($1,6,2)+1;
+     m[i]=m[i]-1;
+     d[i]=substr($1,9,2)+1;
+     d[i]=d[i]-1;
+     t[i]=$2;
+     rr[i]=$3;
+     Nd[i]=$4;
+     EIRd[i]=$5;
+     HBRd[i]=$6;
+     p[i]=$7;
+     i++;
+    }END{
+         i--;
+         iyanz=0;
+         for (k=360;k<=i;k=k+360) {iyanz++}
+         ye=y[1]+iyanz-1;
+         rschwelle=0.01;
+         for (iy=y[1];iy<=ye;iy++)
+         {
+# Compute annual values
+          sumt=0.0;
+          sumr=0.0;
+          sumN=0.0;
+          sumeir=0.0;
+          sumhbr=0.0;
+          sump=0.0;
+          pmax=-1000;
+          pmin=1000;
+          for (j=jh;j<jh+360;j++)
+          {
+           if ( iy == y[j] )                                                                                                     
+           {
+            sumt=sumt+t[j];
+            sumr=sumr+rr[j];
+            sumN=sumN+Nd[j];
+            sumeir=sumeir+EIRd[j]
+            sumhbr=sumhbr+HBRd[j];
+            sump=sump+p[j];
+            if ( p[j] > pmax) {pmax=p[j];}
+            if ( p[j] < pmin) {pmin=p[j];}           
+           }
+          }
+          jh=jh+360;
+# 360: 360 Tage pro Jahr, 30: 30 Tage pro Monat, 100: 100 Menschen
+          Ta[iy]=sumt/360.;
+          RRa[iy]=sumr;
+          Nmean=sumN/360.;
+          EIRa[iy]=sumeir;
+          HBRa[iy]=sumhbr;
+          if ( HBRa[iy] > 0 ) {CSPRa[iy]=100.*EIRa[iy]/HBRa[iy];}
+          else {CSPRa[iy]=-9.0;}  
+          PRa[iy]=sump/360.;
+          PRmax[iy]=pmax;
+          PRmin[iy]=pmin;
+# Compute monthly values
+          for (im=1;im<=12;im++)
+          {
+           sumt=0.0;
+           sumr=0.0;
+           sumN=0.0;
+           sumeir=0.0;
+           sumhbr=0.0;
+           sump=0.0;
+           pmax=-1000;
+           pmin=1000;
+           for (k=kh;k<kh+30;k++)
+           {
+            if ( ( iy == y[k] ) && ( im == m[k] ) )
+            {
+             sumt=sumt+t[k];
+             sumr=sumr+rr[k];
+             sumN=sumN+Nd[k];
+             sumeir=sumeir+EIRd[k]
+             sumhbr=sumhbr+HBRd[k];
+             sump=sump+p[k];
+             if ( p[k] > pmax) {pmax=p[k];}
+             if ( p[k] < pmin) {pmin=p[k];}
+            }
+           }
+           kh=kh+30;
+           tmean=sumt/30.;
+           Nmean=sumN/30.;
+           EIR[iy,im]=sumeir;
+           HBR=sumhbr;
+           if ( HBR > 0 ) {CSPR=100.*EIR[iy,im]/HBR;}
+           else {CSPR=-9.0;}  
+           PR=sump/30.;
+           printf("%4d %2.2d %7.2f %7.2f %7.2f %12.3f %12.3f %7.2f %7.2f %7.2f %7.2f\n",iy,im,tmean,sumr,Nmean,EIR[iy,im],HBR,CSPR,PR,pmax,pmin);
+          }
+
+# Definition Malariamonat bzgl. einzelner Monate:
+# Schwelle fuer EIR-Wert => Malariapraesenz in bestimmtem Monat
+# Schwellwert fuer monatliche EIR-Werte: 0.01, d.h. 1 infektioeser Stich bzgl.
+# der modellierten 100 Menschen pro Monat               
+
+# Laenge der Malariasaison (Seas) bestimmen
+# XSeas (Monat mit groesstem EIR-Wert) bestimmen
+          rsum=0.0;
+          EIRmax=-1000.0;
+          for (im=1;im<=12;im++)
+          {
+           if ( EIR[iy,im] >= rschwelle ) 
+           {
+            Seas[iy]++;
+            rsum=rsum+EIR[iy,im];
+            if ( EIR[iy,im] > EIRmax ) {XSeas[iy]=im; EIRmax=EIR[iy,im];}
+           }
+           val[im]=EIR[iy,im];
+          }
+# MSeas (Anzahl der Monate in denen 75% der Malariauebertragung auftritt)
+# Array val sortieren
+          isort(val,12);
+          rwert75=rsum*75./100.;
+          MSeas[iy]=0;
+          ilauf=0
+          rsum=0.0;
+          for (im=12;im>=1;im--)
+          {
+           ilauf++;
+           rsum=rsum+val[im];
+           if ( ( rsum >= rwert75 ) && ( MSeas[iy] == 0 ) ) {MSeas[iy]=ilauf;}
+          } 
+         }
+# Compute SSeas and ESeas (start and end of the malaria season)
+         for (iy=y[1];iy<=ye;iy++)
+         {
+# SSeas
+          is=0;
+          if ( iy > y[1] ) {eirh=EIR[iy-1,12];}
+          else {eirh=1000.;}
+          if ( ( eirh < rschwelle ) && ( EIR[iy,im] >= rschwelle ) ) {SSeas[iy,is]=im; is++;}
+          for (im=2;im<=12;im++)
+          {           
+           if ( ( EIR[iy,im-1] < rschwelle ) && ( EIR[iy,im] >= rschwelle ) ) {SSeas[iy,is]=im; is++;}
+          }
+# ESeas
+          ie=0;
+          for (im=1;im<=11;im++)
+          {
+           if ( ( EIR[iy,im] >= rschwelle ) && ( EIR[iy,im+1] < rschwelle ) ) {ESeas[iy,ie]=im; ie++;}  
+          }
+          if ( iy < ye ) {if ( ( EIR[iy,12] >= rschwelle ) && ( EIR[iy+1,1] < rschwelle ) ) {ESeas[iy,ie]=im; ie++;}}
+# Seas=12 or Seas=0
+          iw=0;
+          for (im=1;im<=12;im++) {if ( EIR[iy,im] >= rschwelle ) {iw++;}}
+          if ( iw == 12 ) {SSeas[iy,0]=-1; ESeas[iy,0]=-1;}
+          else if ( iw == 0 ) {SSeas[iy,0]=-5; ESeas[iy,0]=-5; XSeas[iy]=-5;}
+# Print the particular values
+          printf("%4d %7.1f %7.1f %7.2f %12.3f %12.3f %7.2f %7.2f %7.2f %2d %2d %2.2d    %2.2d %2.2d %2.2d %2.2d %2.2d %2.2d    %2.2d %2.2d %2.2d %2.2d %2.2d %2.2d\n",iy,Ta[iy],RRa[iy],CSPRa[iy],EIRa[iy],HBRa[iy],PRa[iy],PRmax[iy],PRmin[iy],Seas[iy],MSeas[iy],XSeas[iy],SSeas[iy,0],SSeas[iy,1],SSeas[iy,2],SSeas[iy,3],SSeas[iy,4],SSeas[iy,5],ESeas[iy,0],ESeas[iy,1],ESeas[iy,2],ESeas[iy,3],ESeas[iy,4],ESeas[iy,5]);
+         }
+        }
+
+        #insertion sort of A[1..n]
+        function isort( A, n,    i, j, hold)
+        {
+         for( i = 2 ; i <= n ; i++)
+         {
+          hold=A[j=i];
+          while ( A[j-1] > hold ) {j--; A[j+1]=A[j];}
+          A[j] = hold
+         }
+        # sentinel A[0] = "" will be created if needed
+        }' ${statken}_daily.txt > dat2
+
+awk '{if ( NF == 11 ) print$0;}' dat2 > ${statken}_mm.txt
+awk '{if ( NF > 11 ) print$0;}' dat2 > ${statken}_year.txt
+
+exit

@@ -1,0 +1,35 @@
+! --- release history --- 
+! v1.0.0 May 2011 - Basic model consisting of LMM and Bomblies and Depinay.
+!               - with addition parametrization for 
+!                 a) ponds, b) pop density c) zoophily d) bednets
+! v1.1.0 Nov 2011 - all params written to netcdf global attributes
+!               - all input params controllable in namelist input 
+!               - simple options added for fake climate change
+!               - simple migration trickle added
+! v1.2.0 Jan 2012 - model structure rearranged to clean up and use directory structure
+!                 - preprocessing upgraded orographic downscaling of temperature 
+! v1.2.1          - mode 3 upgrades to use AR4.
+! 
+! v1.2.2          - fast cycle updates of minor script changes:
+! v1.2.3
+! v1.2.4
+! v1.2.5          - various minor corrections to output files, naming changes, and script streamlines
+!                 - ability to run with ECMWF seasonal forecasts.
+!
+! v1.2.6***       - stable beta release - 
+!                 - adjusted hydrology 
+!                 - Version that is documented in Tompkins and Ermert (2013)***
+!
+! v1.2.7          - revised optional hydrology scheme
+!
+! v1.3.0 July 2012 - capability of exact restarts 
+!                  - rain and temperature are read in one slice at a time (for AR5) and not necessarily in the output 
+!                  - adapable netcdf output file
+!                  - file i/o split into several subroutines and cleaned,  
+!
+! v1.3.1 July 2013 - Revised Larvae growth rates according to Craig et al. 1999 with new larvae mortality function
+!                  - indoor temperature included, with temperature experience a linear mix of indoor and outdoor
+!
+! v1.3.2 Nov 2013  - vectri_driver script updated to allow long name
+!                    options in addition to previous fix form argument list 
+!

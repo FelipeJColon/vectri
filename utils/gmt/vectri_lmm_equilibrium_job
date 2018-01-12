@@ -1,0 +1,225 @@
+#!/bin/bash
+
+PATH=$PATH:/usr/bin/
+file=$HOME/CODE/GMT/
+
+rm out.ps
+###############################################################
+
+for model in vectri
+#vectri lmm
+do
+
+if [ ${model} = "lmm" ] ; then
+ input=/home/vermert/qweci/trieste/lmm/runs/output/lmm_equilibrium.txt
+elif [ ${model} = "vectri" ] ; then
+ input=./vectri_equilibrium.txt
+fi
+
+yend=100.0
+
+awk '{print$1}' ${input} > dat0
+sort -n -u dat0 > dat1
+awk '{printf("%s ",$1);}' dat1 > dat2
+read loop1 < dat2
+echo $loop1
+
+awk '{print$2}' ${input} > dat0
+sort -n -u dat0 > dat1
+awk -vyend=${yend} 'BEGIN{y[0]=0.0; i=0;}
+     {
+      i++;
+      y[i]=$1;
+     }END{i++; y[i]=yend;
+          for (j=1;j<i;j++)
+          {
+           y1=(y[j]-y[j-1])/2.0;
+           if ( j == 1 ) {y1=y[j]-y[0];}
+           y2=(y[j+1]-y[j])/2.0;
+           if ( j == i-1 ) {y2=y[j+1]-y[j];} 
+           printf("%s %s %s\n",y[j],y1,y2);          
+          }
+         }' dat1 > sat1
+awk '{printf("%s ",$1);}' dat1 > dat2
+read loop2 < dat2
+echo $loop2
+
+for vari in EIRa Nd CSPRa PRa
+do
+
+datout=./${model}_equi_${vari}
+
+i2=-9
+if [ ${vari} = "Nd" ] ; then
+ i1=3
+ cvari="N@-d"
+elif [ ${vari} = "EIRa" ] ; then
+ i1=4
+ cvari="EIR@-a"
+elif [ ${vari} = "CSPRa" ] ; then
+ i1=4
+ i2=5
+ cvari="CSPR@-a"
+elif [ ${vari} = "PRa" ] ; then
+ i1=6
+ cvari="PR@-a"
+fi
+
+ratio=26.0/16.1
+palette=${vari}
+is=8
+
+col0=181/181/181
+col1=40/144/58
+col2=255/0/0
+col3=30/60/250
+col4=255/0/0
+cfa0=255/255/255
+cfa1=0/0/0
+
+area=10/40/0/20
+
+echo $area
+echo $ratio
+
+psbasemap --ANOT_FONT=Helvetica --ANNOT_FONT_SIZE_PRIMARY=14 --GRID_PEN=0.75p/0/0/0ta --LABEL_OFFSET=0.6c --HEADER_FONT_SIZE=20 --HEADER_OFFSET=-0.35c -R${area} -JX${ratio} -Ba5f1:"T@-d@- [\260C]":/a1f0.1:"R@-d@- [mm]":WeSn -X3.1 -K > out.ps
+
+for rval in ${loop2}
+do
+ grep $rval sat1 > sat2
+ read cdum y1 y2 < sat2
+ echo $rval $y1 $y2 
+ awk -vrval=${rval} '{if ( rval == $2 ) print$0;}' ${input} > sat3
+ awk -vvari=${vari} -vrval=${rval} -vys1=${y1} -vys2=${y2} -vi1=${i1} -vi2=${i2} '{
+               il++; x[il]=$1; y[il]=$i1;
+               if ( i1 == 4 ) {y[il]=y[il]*360.0;}
+               if ( i2 > 0 ) {y[il]=100.*$i1/$i2;}
+              }END{
+                   x[0]=x[1]-(x[2]-x[1]);
+                   for (j=1;j<=il;j++)
+                   {
+                    y1=rval-ys1;
+                    y2=rval+ys2;
+                    if ( vari == "EIRa" )
+                    {
+                     if ( y[j] == 0 ) {ifa=11;}
+                     else if ( y[j] <= 1 ) {ifa=12;}
+                     else if ( y[j] <= 2 ) {ifa=13;}
+                     else if ( y[j] <= 5 ) {ifa=14;}
+                     else if ( y[j] <= 10 ) {ifa=15;}
+                     else if ( y[j] <= 50 ) {ifa=16;}
+                     else if ( y[j] <= 100 ) {ifa=17;}
+                     else if ( y[j] <= 250 ) {ifa=18;}
+                     else if ( y[j] <= 500 ) {ifa=19;}
+                     else if ( y[j] <= 1000 ) {ifa=20;}
+                     else {ifa=21;}
+                    }
+                    else if ( vari == "CSPRa" )
+                    {
+                     if ( y[j] == 0 ) {ifa=11;}
+                     else if ( y[j] <= 1 ) {ifa=12;}
+                     else if ( y[j] <= 2 ) {ifa=13;}
+                     else if ( y[j] <= 4 ) {ifa=14;}
+                     else if ( y[j] <= 6 ) {ifa=15;}
+                     else if ( y[j] <= 10 ) {ifa=16;}
+                     else if ( y[j] <= 14 ) {ifa=17;}
+                     else if ( y[j] <= 18 ) {ifa=18;}
+                     else if ( y[j] <= 22 ) {ifa=19;}
+                     else if ( y[j] <= 26 ) {ifa=20;}
+                     else {ifa=21;}
+                    }
+                    else if ( vari == "Nd" )
+                    {
+                     if ( y[j] == 0 ) {ifa=11;}
+                     else if ( y[j] <= 5 ) {ifa=12;}
+                     else if ( y[j] <= 10 ) {ifa=13;}
+                     else if ( y[j] <= 50 ) {ifa=14;}
+                     else if ( y[j] <= 100 ) {ifa=15;}
+                     else if ( y[j] <= 250 ) {ifa=16;}
+                     else if ( y[j] <= 500 ) {ifa=17;}
+                     else if ( y[j] <= 1000 ) {ifa=18;}
+                     else if ( y[j] <= 5000 ) {ifa=19;}
+                     else if ( y[j] <= 10000 ) {ifa=20;}
+                     else {ifa=21;}
+                    }
+                    else if ( vari == "PRa" )
+                    {
+                     if ( y[j] <= 2 ) {ifa=11;}
+                     else if ( y[j] <= 10 ) {ifa=12;}
+                     else if ( y[j] <= 20 ) {ifa=13;}
+                     else if ( y[j] <= 30 ) {ifa=14;}
+                     else if ( y[j] <= 40 ) {ifa=15;}
+                     else if ( y[j] <= 50 ) {ifa=16;}
+                     else if ( y[j] <= 60 ) {ifa=17;}
+                     else if ( y[j] <= 70 ) {ifa=18;}
+                     else if ( y[j] <= 80 ) {ifa=19;}
+                     else if ( y[j] <= 90 ) {ifa=20;}
+                     else {ifa=21;}
+                    }
+                    x1=x[j]-(x[j]-x[j-1])/2.;
+                    x2=x[j]+(x[j]-x[j-1])/2.;
+                    printf("%11.2f %11.2f farbe=%d\n",x1,y1,ifa);
+                    printf("%11.2f %11.2f farbe=%d\n",x1,y2,ifa);
+                    printf("%11.2f %11.2f farbe=%d\n",x2,y2,ifa);
+                    printf("%11.2f %11.2f farbe=%d\n",x2,y1,ifa);
+                    printf("%11.2f %11.2f farbe=%d\n",x1,y1,ifa);
+                    printf("> farbe=%d\n",ifa);
+                   }
+                  }' sat3 > dat4
+
+ for ifa in 11 12 13 14 15 16 17 18 19 20 21
+ do
+  if [ $is -eq 8 ] ; then
+   if [ $ifa -eq 11 ] ; then
+    col=200/200/200
+   elif [ $ifa -eq 12 ] ; then
+    col=0/15/120
+   elif [ $ifa -eq 13 ] ; then
+    col=30/60/250
+   elif [ $ifa -eq 14 ] ; then
+    col=0/160/230
+   elif [ $ifa -eq 15 ] ; then
+    col=170/255/255
+   elif [ $ifa -eq 16 ] ; then
+    col=0/220/0
+   elif [ $ifa -eq 17 ] ; then
+    col=160/230/50
+   elif [ $ifa -eq 18 ] ; then
+    col=230/220/0
+   elif [ $ifa -eq 19 ] ; then
+    col=240/170/110
+   elif [ $ifa -eq 20 ] ; then
+    col=255/0/0
+   elif [ $ifa -eq 21 ] ; then
+    col=255/0/255
+   fi
+  fi
+  awk -vifa=${ifa} '{if ( substr($NF,length($NF)-1,2) == ifa ) printf("%s\n",substr($0,1,index($0,"fa")-1));}' dat4 > dat1
+  psxy dat1 -R${area} -JX${ratio} -M -G${col} -K -O >> out.ps
+ done
+
+done #rval
+
+psbasemap --ANOT_FONT=Helvetica --ANNOT_FONT_SIZE_PRIMARY=14 --GRID_PEN=0.75p/0/0/0ta --LABEL_OFFSET=0.6c -R${area} -JX${ratio} -B/g1 -O -K >> out.ps
+
+psscale --ANOT_FONT=Helvetica --ANNOT_FONT_SIZE_PRIMARY=12 --ANNOT_OFFSET_PRIMARY=0.15c --TICK_LENGTH=0.0c -C${palette}.cpt -D13.1/17.4/16.0/0.5h -L -E1.5c -O -K >> out.ps
+echo "0 0 18 0 Helvetica-Bold 0 "${cvari} > test.txt
+pstext test.txt -Jx0.5/0.5 -R-5/5/-1/1 -Y16.4 -X20.4 -O >> out.ps
+
+
+rm ${datout}.pdf
+ps2pdf out.ps
+mv out.pdf ${datout}.pdf
+
+#rm out.eps
+#ps2eps -R=+ out.ps
+#mv out.eps ${datout}${model}_${vari}_equilibrium.eps
+
+
+done # vari
+
+done # model
+
+tar -cvf equi.pdf.tar *equi*pdf
+
+exit

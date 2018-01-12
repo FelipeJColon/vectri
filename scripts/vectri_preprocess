@@ -1,0 +1,485 @@
+# #!/bin/bash
+#
+#-------------------------------------------------------------------
+# A. Tompkins 2011/08
+# script to get gridded T/rain/population data, and interpolate to grid
+# Tompkins@ictp.it - please do not distribute without permission
+#
+# instead of passing ar5 can do in ELSE statement
+
+#
+# This script needs at least version v1.6.2 of CDO
+#
+
+
+#
+# presently hard-wired defaults
+#
+case $host in 
+$desktop)
+  datadir=/media/zck07apu/Felipe/UEA/BEIS/
+  #eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtf0115/
+  # eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtf0165/
+  #eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB15a66/
+#    eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB366/
+#   eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB2at50/
+   eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB2at66/
+  # datadir=/media/zck07apu/Felipe/UEA/BEIS/ # on desktop
+  # eraidir=/media/zck07apu/Felipe/UEA/BEIS/eraiReg/
+  # eraidir=/home/esp-shared-b/RegCM_Data/EIN75/surface
+  ;;
+$argo)
+  datadir=/media/zck07apu/Felipe/UEA/BEIS/
+   #eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtf0115/
+    #eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtf0165/
+   #eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB15a66/
+#    eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB366/
+#   eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB2at50/
+  eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB2at66/
+  #datadir=/media/zck07apu/Felipe/UEA/BEIS/ # on desktop
+  #eraidir=/media/zck07apu/Felipe/UEA/BEIS/eraiReg/
+  #eraidir=/home/esp-shared-b/RegCM_Data/EIN75/surface
+  ;;
+'seri')
+  datadir=/media/zck07apu/Felipe/UEA/BEIS/
+   #eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtf0115/
+  #  eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtf0165/
+   #eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB15a66/
+#    eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB366/
+#   eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB2at50/
+  eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB2at66/
+  #datadir=/media/zck07apu/Felipe/UEA/BEIS/ # on desktop
+  #eraidir=/media/zck07apu/Felipe/UEA/BEIS/eraiReg/
+  #eraidir=/home/esp-shared-b/RegCM_Data/EIN75/surface
+  ;;
+*)
+  datadir=/media/zck07apu/Felipe/UEA/BEIS/
+  #eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/test/
+#   eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/obs/tmp/ts/
+#   eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtf0115/
+#   eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtf0165/
+#   eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB15a66/
+#    eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB366/
+#   eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB2at50/
+  eraidir=/media/zck07apu/Felipe/UEA/BEIS/climgen/daily/gfdl_esm2m/tmp/dtsB2at66/
+  #datadir=/media/zck07apu/Felipe/UEA/BEIS/ # on desktop
+  #eraidir=/media/zck07apu/Felipe/UEA/BEIS/eraiReg/
+  #eraidir=/home/esp-shared-b/RegCM_Data/EIN75/surface
+  ;;
+esac
+
+#
+# POPULATIONS FILES: 
+#------------------
+
+# AFRIPOP FOR AFRICA:
+# popafripop=$datadir/population/ssp2_2080_reg.nc
+# popafripop=$datadir/Afripop/afripop_5km.nc
+#popafripop=$datadir/GISDATA/POPULATION/AFRIPOP/africa/afripop_1km.nc
+
+# GRUMP DATA FOR GLOBAL:
+#   popgrump=$datadir/population/popdens_1975.nc
+# popgrump=$datadir/population/popdens_2020.nc
+# popgrump=$datadir/population/popdens_2040-2070.nc
+popgrump=$datadir/population/popdens_2090-2110.nc
+# popgrump=$datadir/population/popdens_2090.nc
+#popgrump=$datadir/GRUMP/glds_2000.nc 
+
+# GRUMP DATA FOR AR5
+# popgrumpar5=$datadir/GISDATA/POPULATION/UNWPP/Estimated_population_2005_0.5.nc
+
+#topofile=$datadir/TOPOGRAPHY/GTOPO/GTOPO30_5MIN.CDF # need to fix this - only one variable
+topofile=$datadir/ETOPO/ETOPO2v2c_latlon.nc
+
+#
+# method for temperature and orography interpolation 
+# nn or bil - nn produces cell signatures
+remaptemp=bil  # is switched to nn if nlat=nlon=1
+remaprain=con  # is switched to nn if nlat=nlon=1
+remappop=con   # conservative remapping for population is switched to nn if nlat=nlon=1
+remapluc=con   # conservative remapping for luc
+
+#
+# default directories 
+#
+[[ $input ]] || input=./input
+
+# input data
+  precip=$1
+  lat1=$2 
+  nlat=$3
+  dlat=$4
+  lon1=$5
+  nlon=$6
+  dlon=$7
+  date1=$8
+  date2=$9
+  rainfile=${10}
+  tempfile=${11}
+  geopotfile=${12}
+  tempsource=${13}
+  downscale=${14}
+  init_file=${15}
+  popsource=${16}
+  lucfacfile=${17}
+# 
+
+  
+lar5=0 # default - switched later if ar5
+
+#
+# switch remapping to nn if nlat=nlon=1
+#
+if [[ $nlon -eq 1 && $nlat -eq 1 ]] ; then
+  remaptemp=nn  
+  remaprain=nn  
+  remappop=nn   
+fi
+
+case "$popsource" in
+  *grump*)   popufile=$popgrump
+             ;;
+  *afripop*) popufile=$popafripop
+             ;;
+  *) popufile=makenetcdf
+     ;;
+esac
+
+tempfile2=${tempfile}_raw
+
+lon2=`echo $lon1 $nlon $dlon | awk '{lon=$1+$2*$3; printf("%5.1f\n",lon);}' | sed 's/ //g'`
+lat2=`echo $lat1 $nlat $dlat | awk '{lat=$1+$2*$3; printf("%5.1f\n",lat);}' | sed 's/ //g'`
+
+# needed for sellatlonbox
+lon0=`echo $lon1 1 | awk '{lon=$1-$2; printf("%5.1f\n",lon);}' | sed 's/ //g'`
+lat0=`echo $lat1 1 | awk '{lat=$1-$2; printf("%5.1f\n",lat);}' | sed 's/ //g'`
+
+#
+# make gridfile.txt
+#
+cat << EOF > gridfile.txt
+gridtype = lonlat
+xsize = $nlon
+ysize = $nlat
+xfirst = $lon1
+xinc = $dlon
+yfirst = $lat1
+yinc = $dlat
+EOF
+
+echo +++ preprocessing input data from $date1 to $date2 +++
+
+
+#
+# initialization file - this is based on a previous VECTRI output file
+#
+# NOTE: this is not a perfect "restart" since we only have bulk statistics
+#       and *not* the exact contents of arrays. e.g. for Parasite ratio
+#       we know the proportion of people with the parasite, but not how many
+#       were bitten in the last 1-14 days 
+#
+# the three variables important for initialization are 
+# 1. PR - used to initialize hosts
+# 2. larvae number
+# 3. Vector number
+# 4. CSPR - vectors already with the parasite
+# 
+# 1 is very important, since the host is the reservoir and is a slow spin-up
+# 2-4 are less crucial since these spin up quickly
+#
+echo ' '
+if [[ -e $init_file ]] ; then 
+  echo +++ preprocessing initialization file $init_file +++
+  echo '    %I using bil for speed at moment' 
+  # need to set the reference year to 2007 as this is refdate in the init file
+  refdate=`echo $date1 | cut -c 5-`
+  refdate=2007$refdate
+  # first select the start date from file
+  $cdo -s -R -seldate,$refdate,$refdate -remapbil,gridfile.txt $init_file $input/init_file.nc
+fi
+
+#
+# cut out 3 letters to see if rainfall is sat obs 
+#
+rainscalfac=1.0 # default value
+levrm=0
+reorder=0
+
+runtype=`echo $precip | cut -c 1-3`
+if [[ ${runtype} = "obs" ]] ; then 
+  precip=`echo $precip | cut -c 4-`
+  krainfile=$rainfile
+  rainfile=`echo $rainfile | sed s/.nc/_${precip}/`.nc
+  echo '    %I: 'using $precip for rainfall 
+
+  case $precip in
+  'trmm')
+    raindir=$datadir'/TRMM/3B42/daily/netcdf/'
+    raintag='trmm_3B42_v7_'
+    raintail='.nc'
+    rainscalfac=24.0
+    ;;
+  'cmorph')
+    #raindir=$datadir'/climgen/daily/test/'
+    #raintag='reg_pre_dtf0115_'
+#     raindir=$datadir'/climgen/daily/obs/pre/ts/'
+#      raindir=$datadir'/climgen/daily/gfdl_esm2m/pre/dtf0115/'
+#      raindir=$datadir'/climgen/daily/gfdl_esm2m/pre/dtf0165/'
+#     raindir=$datadir'/climgen/daily/gfdl_esm2m/pre/dtsB15a66/'
+#     raindir=$datadir'/climgen/daily/gfdl_esm2m/pre/dtsB366/'
+#     raindir=$datadir'/climgen/daily/gfdl_esm2m/pre/dtsB2at50/'
+    raindir=$datadir'/climgen/daily/gfdl_esm2m/pre/dtsB2at66/'
+#     raintag='pre_ts_'
+#     raintag='pre_dtf0115_'
+#     raintag='pre_dtf0165_'
+#     raintag='pre_dtsB15a66_'
+#     raintag='pre_dtsB366_'
+#     raintag='pre_dtsB2at50_'
+    raintag='pre_dtsB2at66_'
+    #raindir=$datadir'/cmorphReg/'
+    #raintag='reg_cmorph_'
+    raintail='.nc'
+    rainscalfac=1.0
+    levrm=1
+    ;;
+  'fews')
+    raindir=$datadir'/FEWS/RFE2.0/netcdf/'
+    raintag='fews_RFE2.0_'
+    raintail='.nc'
+    rainscalfac=1.0
+    ;;
+  'arc2')
+    raindir=$datadir'/FEWS/ARC2/netcdf/'
+    raintag='fews_ARC2_'
+    raintail='.nc'
+    rainscalfac=1.0
+    ;;
+  'persiann')
+    raindir=$datadir'/PERSIANN/DAILY/'
+    raintag='PERSIANN-CDR_v01r01_'
+    raintail='_c????????.nc' # collection date is unknown...
+    rainscalfac=1.0
+    reorder=1
+    ;;
+  esac
+fi  
+
+if [[ $tempsource = "erai" ]] ; then 
+  tempdir=$eraidir
+#   temptag='tmp_ts_'
+#   temptag='tmp_dtf0115_'
+#   temptag='tmp_dtf0165_'
+#   temptag='tmp_dtsB15a66_'
+#   temptag='tmp_dtsB366_'
+#   temptag='tmp_dtsB2at50_'
+  temptag='tmp_dtsB2at66_'
+  temptail='.nc'
+  #temptag='reg_erai_tas_'
+  #temptail='_0.75.nc'  
+  #temptail='*.nc'  
+fi 
+
+# assume if rainfile exists then temperature does too
+if [[ ! -e $rainfile ]] ; then 
+if [[ $runtype = "obs" ]] ; then
+  date=$date1
+  tput sc
+  
+  while [[ $date -le $date2 ]] ; do
+    tput el1
+    tput rc
+    yyyy=`echo $date | cut -c 1-4`
+ 
+    raindiryy=${raindir}${yyyy}/
+    tempdiryy=${tempdir}${yyyy}/
+
+    if [[ $date -eq $date1 ]] ; then 
+      echo '    %I: 'calculating rainfall $remaprain interpolation weights:  
+      $cdo -s -R gen${remaprain},gridfile.txt ${raindiryy}${raintag}${date}${raintail} rainwgt.nc
+
+      echo '    %I: 'calculating temperature $remaptemp interpolation weights: 
+      $cdo -s -R gen${remaptemp},gridfile.txt ${tempdiryy}${temptag}${date}${temptail} tempwgt.nc
+#      $cdo -s -R gen${remaptemp},gridfile.txt erai_temp_${date}.nc tempwgt.nc
+    fi
+
+
+#    if [[ ! -e ${input}/${temptag}${yyyy}.nc ]] ; then 
+#      # New strategy for ERAI
+#      # remap annual file and then simply extract days
+#      echo '    %I: 'remapping temperature $remaptemp for $yyyy :
+#      $cdo -s daymean  ${tempdir}/erai_tas_${yyyy}0101_${yyyy}1231_00_0.75.nc dummy.nc
+#      $cdo -s remap${remaptemp},gridfile.txt dummy.nc  ${input}/${temptag}${yyyy}.nc
+#      rm -f dummy.nc
+#    fi
+
+    echo -n '    date:' $date'  '
+    $cdo -s -R remap,gridfile.txt,rainwgt.nc ${raindiryy}${raintag}${date}${raintail} ./rdummy_${date}.nc
+    $cdo -s -R remap,gridfile.txt,tempwgt.nc ${tempdiryy}${temptag}${date}${temptail} ./tdummy_${date}.nc
+
+#    $cdo -s -R remap,gridfile.txt,tempwgt.nc erai_temp_${date}.nc ./tdummy_${date}.nc
+#    $cdo seldate,$date  ${input}/${temptag}${yyyy}.nc ./tdummy_${date}.nc   
+#    rm -f erai_temp_${date}.nc # hack 
+    date=`${scripts}/add_dd $date 1`
+  done
+
+  # clean up erai files.x
+  rm -f  ${input}/${temptag}????.nc
+
+  # move outside loop to speed up, but need to do one year at a time to prevent 
+  # cdo from bombing out.
+  yyyy1=`echo $date1 | cut -c 1-4`
+  yyyy2=`echo $date2 | cut -c 1-4`
+
+  # merge chunks of one year...
+  for yyyy in `seq $yyyy1 1 $yyyy2` ; do 
+    $cdo -s mergetime rdummy_${yyyy}*.nc rydummy_${yyyy}.nc
+    $cdo -s mergetime tdummy_${yyyy}*.nc tydummy_${yyyy}.nc
+  done
+
+  # and then merge these together
+  $cdo -s mergetime rydummy*.nc ralldummy.nc 
+  $cdo -s mergetime tydummy*.nc $tempfile2
+
+  # now apply the scale factor
+  $cdo mulc,$rainscalfac ralldummy.nc $rainfile
+
+  # reorder the dimensions if required
+  if [[ $reorder -eq 1 ]] ; then 
+    ncpdq -O -a time,lat,lon $rainfile $rainfile
+  fi
+
+  # remove the level index if required
+  if [[ $levrm -eq 1 ]] ; then 
+    ncwa -O -a lev -d lev,0,0 $rainfile $rainfile
+  fi
+
+  # clean up dummy files
+  rm -f rdummy_*.nc tdummy_*.nc rydummy_*.nc tydummy_*.nc ralldummy.nc
+
+#
+# otherwise input files are from seasonal forecast or climate run and thus 
+# we only have to extract the range of dates for the VECTRI integration
+#
+else
+  case "$precip" in
+    *AR5*) echo skipping preprocess for AR5 
+           lar5=1 
+           ;;
+    *) echo select dates and remap 
+       # first select the dates required
+
+       date2=`${scripts}/add_dd $date2 1`
+       $cdo seldate,$date1,$date2 $tempsource tdummy.nc
+       $cdo seldate,$date1,$date2 $precip     rdummy.nc
+
+       # then remapgrid to input resolution
+       $cdo -s -R remap${remaprain},gridfile.txt tdummy.nc $tempfile2
+       $cdo -s -R remap${remaptemp},gridfile.txt rdummy.nc $rainfile
+       ;;
+  esac
+  rm -f tdummy.nc rdummy.nc
+fi 
+fi
+
+#
+# population and LUC data - for the moment this is time independent
+#
+#
+# use the 3km or 5km dataset otherwise $cdo has a memory problem for large regions
+# you may switch to the 1km if you are working with a small country
+# there is also the possibility of using the afripop country data which is 
+# mostly available at a 100m resolution
+#
+if [[ $lar5 -eq 1 ]] ; then 
+  echo ' '
+  echo +++ population for AR5 run already link in vectri.loop +++
+else
+  if [[ $popufile == "makenetcdf" ]] ; then 
+    #
+    # make file here:
+    #
+    cat << EOF2 > $input/popufile.cdl
+    netcdf popufile {    // example netCDF specification in CDL
+     
+     dimensions:
+     lat = 1, lon = 1;
+     
+     variables:
+       double     lat(lat), lon(lon);
+       float      population(lat,lon);
+       lat:units = "degrees_north";
+       lon:units = "degrees_east";
+       population:_FillValue = -9999.;
+     
+     data:
+EOF2
+     # add data
+     echo "lat=$lat1;" >> $input/popufile.cdl
+     echo "lon=$lon1;" >> $input/popufile.cdl
+     echo "population=$popsource;" >> $input/popufile.cdl
+     echo "}" >> $input/popufile.cdl
+     # convert to netcdf
+     ncgen -o $input/popufile.nc $input/popufile.cdl
+  else
+    echo ' '
+    echo +++ preprocessing population data 
+    echo '    %I : population file : ' $popufile ' remapped by remap'${remappop}
+    $cdo -s -R remap${remappop},gridfile.txt $popufile ${input}/popufile.nc
+  fi
+
+  # Now remap the LUC file...
+  if [[ -e $lucfacfile ]] ; then 
+    echo ' '
+    echo '    %I : LUC file : ' $lucfacfile ' remapped by remap'${remapluc}
+    $cdo -s -R remap${remapluc},gridfile.txt $lucfacfile ${input}/lucfile.nc
+  fi
+fi
+
+if [[ $downscale -eq 1 ]] ; then 
+  #
+  # topography files for temperature bias correction
+  #
+  echo +++ preprocessing topography data +++
+  rm -f ${input}/topography.nc ${input}/geopot.nc
+  $cdo -s -f nc remap${remaptemp},gridfile.txt -setgridtype,regular $geopotfile ${input}/geopot.nc
+  $cdo -s -R sellonlatbox,$lon0,$lon2,$lat0,$lat2  $topofile ${input}/dummy.nc
+  $cdo -s -R remapbil,gridfile.txt  ${input}/dummy.nc ${input}/topography.nc
+
+  #
+  # downscale temperature
+  #
+  echo +++ downscaling temperature data +++
+  $cdo  -s -R divc,9.81  ${input}/geopot.nc  ${input}/modelhgt.nc
+  $cdo  -s -R sub  ${input}/modelhgt.nc ${input}/topography.nc ${input}/hgterr.nc
+  $cdo  -s -R mulc,0.0065  ${input}/hgterr.nc ${input}/tempadj.nc
+  $cdo  -b 32 -s -R add $tempfile2 ${input}/tempadj.nc $tempfile
+else
+  echo "   downscaling switched off"
+  if [[ $lar5 -ne 1 ]] ; then 
+    mv $tempfile2 $tempfile
+  fi
+fi 
+
+if [[ $lar5 -eq 1 ]] ; then 
+  # no renaming either - just link files:
+  rm -f $tempfile $rainfile
+  ln -s $tempsource $tempfile
+  ln -s $precip $rainfile
+else
+  # rename variables in input files
+  $cdo -s -R setname,temperature $tempfile tdummy.nc
+  mv -f tdummy.nc $tempfile
+
+  if [[ $precip != 'trmm' ]] ; then 
+    $cdo -s -R setname,precip $rainfile rdummy.nc
+  fi
+  mv -f rdummy.nc $rainfile
+
+  # link files???
+  ln -s $rainfile $krainfile 
+fi
+
+# clean up
+#rm -f gridfile.txt tempwgt.nc rainwgt.nc ${input}/dummy.nc 
+
+

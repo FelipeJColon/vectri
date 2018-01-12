@@ -1,0 +1,25 @@
+#!/bin/bash
+
+PATH=$PATH:/usr/bin/
+file=$HOME/CODE/GMT/
+
+datinp=data/
+
+##########comparison t2m composite ERA40 (green line) vs. REMO (reddish lines) vs. 32 synoptic weather stations (black line)
+
+area=0/360/21/32
+psbasemap --ANOT_FONT=Helvetica --ANNOT_FONT_SIZE_PRIMARY=20 --GRID_PEN=0.75p/0/0/0ta -R${area} -JX25/15 -Ba30f10:"day in year":/a2g1:"daily mean temperature (T) [@~\260@~C]":WeSn -K > out.ps
+psxy ${datinp}WAcomp_t2m_1973_2000.txt -R${area} -M -Wfat,0/0/0 -JX25/15 -O -K >> out.ps
+psxy ${datinp}era40_WAcomp_t2m_1973_2000.txt -R${area} -M -Wfat,0/255/0 -JX25/15 -O -K >> out.ps
+psxy ${datinp}remo0_WAcomp_t2m_1973_2000.txt -R${area} -M -Wfat,255/0/0 -JX25/15 -O -K >> out.ps
+psxy ${datinp}remo02_WAcomp_t2m_1973_2000.txt -R${area} -M -Wthin,153/0/0 -JX25/15 -O -K >> out.ps
+psxy ${datinp}remo01_WAcomp_t2m_1973_2000.txt -R${area} -M -Wthin,204/0/128 -JX25/15 -O -K >> out.ps
+psxy ${datinp}remo03_WAcomp_t2m_1973_2000.txt -R${area} -M -Wthin,255/102/0 -JX25/15 -O >> out.ps
+
+gv out.ps
+
+
+
+exit
+
+

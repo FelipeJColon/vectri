@@ -1,0 +1,35 @@
+VECTRI OPEN-SOURCE LICENSE
+
+VECTRI is a open-source model released under an open-source license. 
+
+It is free to use and modify for non-commercial, scientific and educational 
+purposes, but is not "freeware" and may not be distributed to third parties, 
+in either original or modified form. Instead we kindly ask you to direct 
+colleagues to ICTP's VECTRI pages so we can keep a  record of who is using the 
+code. 
+
+If you make modifications to the code which you think will benefit the user 
+community, we encourage you to create a branch and submit a merge request, so 
+all can benefit from your changes.
+
+VECTRI is released with the disclaimer that the model is a research tool 
+and comes with no support or guarentees and the authors and ICTP bear no legal 
+responsibility whatsoever for any loss, financial or otherwise, that may 
+occur through its use.
+
+All that the authors ask is that:
+
+1. You state the origin of the model in any work you publicize.
+2. You reference the Tompkins and Ermert 2013 manuscript in any article that 
+   ses the model, even in a modified form.
+3. That a copy of any article using the model is sent to the authors after 
+   (or preferably before) submission to add to the database here.
+4. If you are thinking to use the model in an international grant proposal 
+   that you consider inviting ICTP to collaborate if the grant conditions allow 
+   (VECTRI development speed relies on external funding opportunities).
+5. You have no objections to your institute being listed on the above maps of 
+    VECTRI users. 
+
+These simple requests are to justify to the funding agencies that support the 
+ICTP institution and the EU that supports much of the project research that the 
+model development is useful to the wider community.

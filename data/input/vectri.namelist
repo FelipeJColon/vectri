@@ -1,0 +1,39 @@
+  !
+  ! this is the namelist file for the vectri model
+  !
+  ! A. Tompkins 2011, ICTP
+  !
+&CONTROL
+iclim_input=3,
+output_file='vectri.out',
+rundir='/local/zck07apu/Documents/GitLab/vectri/data',
+ncout_file='/local/zck07apu/Documents/GitLab/vectri/data/output/vectri_daily_ethiopia_lon33-82.5_lat2-51.5_date20000101-20000201.nc'
+nday=32,
+start_date=20000101,
+init_file='none',
+now='Wed Jul 26 17:23:43 BST 2017',
+version='v1.3.5-34-g3bc73a4',
+runcommand='/local/zck07apu/Documents/GitLab/vectri/scripts/vectri_driver 3 2 100 0.5 33 100 0.5 20000101 20000201 1 obscmorph erai ethiopia 1 none afripop 1',
+/
+&CLIMATE
+rconst_rain=-999
+rconst_temp=-999
+rainfile='/local/zck07apu/Documents/GitLab/vectri/data/input/rainfile_lon33-82.5_lat2-51.5_20000101_20000201.nc'
+tempfile='/local/zck07apu/Documents/GitLab/vectri/data/input/tempfile_lon33-82.5_lat2-51.5_20000101_20000201.nc'
+/
+&STATION
+station_file='undefined',
+rpopdensity2010=-999
+/
+&REGION
+lon=33,
+nlon=100,
+dlon=0.5,
+lat=2,
+nlat=100,
+dlat=0.5
+/
+&CONSTANTS
+nyearspinup=0
+ 
+/

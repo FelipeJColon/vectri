@@ -1,0 +1,66 @@
+#!/bin/bash
+#
+#--------------------------------------------------
+# A. Tompkins 2011/06/06 
+# Tompkins@ictp.it - please do not distribute without permission
+# compile script - change to makefile soon
+#--------------------------------------------------
+
+# default value
+[[ $source ]]  || source=./
+[[ $input ]]   || input=./
+
+debug=$1
+
+rm -f fort.*
+
+case $host in 
+'argo')
+  f90=gfortran-mp-4.8
+#  libs='-L/opt/netcdf/4.1.1/gnu/4.4.0/lib -lnetcdf -lnetcdff -I/opt/netcdf/4.1.1/gnu/4.4.0/include'
+  FFLAGS=''
+  libs=$(nc-config --flibs)
+  FFLAGS=$(nc-config --fflags)
+  FFLAGS=`echo $FFLAGS | cut -c 7-`
+
+  # fixed instead of dynamic libraries
+#  FFLAGS=-I/home/mariotti/mytree/include -L/home/mariotti/mytree/lib -L/home/mariotti/mytree/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lm -lcurl 
+  ;;
+#'serial01.hpc')
+#  source /etc/profile.d/modules.sh
+#  module load gnu/4.4.0
+#  module load netcdf/4.1.1/gnu/4.4.0
+##  libs='-L/opt/netcdf/4.1.1/gnu/4.4.0/lib -lnetcdf -lnetcdff -I/opt/netcdf/4.1.1/gnu/4.4.0/include'
+#  libs=$(nc-config --flibs)
+#  FFLAGS=$(nc-config --fflags)
+#  FFLAGS=`echo $FFLAGS | cut -c 7-`
+#  ;;
+*)
+  #f90=gfortran-mp-4.8
+  f90=gfortran
+  libs='-L/usr/lib -L/opt/local/lib -lnetcdff -lnetcdf -I/usr/include -I/opt/local/include'
+  ;;
+esac
+
+#opts='-Wall -Wextra -Wunused-parameter -fbounds-check -fdump-core -ffpe-trap=invalid,zero,overflow -finit-real=nan'
+#opts='-fbounds-check -ffpe-trap=invalid,zero,overflow -finit-real=nan'
+opts='-fbounds-check -ffpe-trap=invalid,zero,overflow -fbacktrace '
+
+exe=vectri.exe
+
+filelist='mo_climate.f90 mo_constants.f90 mo_control.f90  mo_vectri.f90 mo_namelist.f90 mo_ncdf_tools.f90 open_input.f90 open_output.f90 initialize.f90 climate_pop_trends.f90 getdata.f90 writedata.f90 setup.f90 setdown.f90 advection.f90 transmission.f90 vectri.f90'
+
+files=''
+
+for file in $filelist ; do
+  files=$files' '${source}/$file
+done
+
+#echo gfortran  -O3  $files $libs -o $input/$exe
+#echo list modules
+#module list 
+
+echo $f90 $debug -J$input $FFLAGS $opts $files $libs -o $input/$exe
+$f90 $debug -J$input $FFLAGS $opts $files $libs -o $input/$exe
+
+# -J$mod

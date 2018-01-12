@@ -1,0 +1,30 @@
+#!/bin/ksh
+#
+#====================================================================
+#
+# script: diff_dd   
+# Version: 20001106
+#
+# returns difference between two dates in days
+#
+# usage: add_dd date0 nd
+#
+#====================================================================
+#
+if (( $# != 2 )); then
+   echo ' Usage: diff_dd date1 date2 '
+   exit 1
+fi
+date1=$1
+date2=$2
+
+day1=`date -d ${date1} +%s`
+day2=`date -d ${date2} +%s`
+
+diff_dd=`expr $day2 - $day1`
+diff_dd=`expr $diff_dd / 86400`
+diff_dd=`expr $diff_dd + 1`
+echo $diff_dd
+#
+#=== end script diff_dd =========
+#
